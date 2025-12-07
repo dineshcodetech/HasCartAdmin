@@ -21,11 +21,11 @@ export const STORAGE_KEYS = {
 export const API_ENDPOINTS = {
   ADMIN_LOGIN: '/api/admin/login',
   ADMIN_DASHBOARD: '/api/admin/dashboard',
-  ADMIN_USERS: '/api/admin/users',
-  ADMIN_AGENTS: '/api/admin/agents',
+  ADMIN_USERS: '/api/admin/users', // Use this to get all users (including agents, admins, customers)
   ADMIN_PRODUCTS: '/api/admin/products',
-  USERS: '/api/users',
-  AGENTS: '/api/agents',
+  USERS: '/api/users', // Use POST /api/users with role="agent" to create agents (or any user)
+  // Note: There is NO /api/agents or /api/admin/agents endpoint.
+  // Agents are users with role="agent". Use /api/users for creation and /api/admin/users for listing.
 }
 
 export const HTTP_STATUS = {
@@ -51,6 +51,37 @@ export const PRODUCT_CONDITION = {
   NEW: 'new',
   USED: 'used',
   REFURBISHED: 'refurbished',
+}
+
+/**
+ * Amazon Search Index (Category) values
+ * Used for filtering products by Amazon category
+ */
+export const AMAZON_SEARCH_INDEX = {
+  ALL: 'All',
+  ELECTRONICS: 'Electronics',
+  BOOKS: 'Books',
+  CLOTHING: 'Clothing',
+  HOME_GARDEN: 'HomeGarden',
+  SPORTS_OUTDOORS: 'SportsOutdoors',
+  AUTOMOTIVE: 'Automotive',
+  BEAUTY: 'Beauty',
+  HEALTH_PERSONAL_CARE: 'HealthPersonalCare',
+  TOYS_GAMES: 'ToysGames',
+  COMPUTERS: 'Computers',
+  MUSIC: 'Music',
+  MOVIES_TV: 'MoviesTV',
+  VIDEO_GAMES: 'VideoGames',
+  PET_SUPPLIES: 'PetSupplies',
+  OFFICE_PRODUCTS: 'OfficeProducts',
+  TOOLS_HOME_IMPROVEMENT: 'ToolsHomeImprovement',
+  BABY: 'Baby',
+  GROCERY_GOURMET_FOOD: 'GroceryGourmetFood',
+  JEWELRY: 'Jewelry',
+  WATCHES: 'Watches',
+  SHOES: 'Shoes',
+  HANDMADE: 'Handmade',
+  INDUSTRIAL: 'Industrial',
 }
 
 export const MENU_ITEMS = [

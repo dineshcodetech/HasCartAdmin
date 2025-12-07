@@ -55,68 +55,182 @@ export const userService = {
 
 /**
  * Agent API Services
+ * Note: Agents are users with role="agent". All agent operations use the /api/users endpoint.
  */
 export const agentService = {
   /**
    * Get all agents
+   * Fetches all users and filters by role="agent"
    * @returns {Promise<Array>} List of agents
    */
   async getAllAgents() {
-    return await httpClient.get(API_ENDPOINTS.ADMIN_AGENTS)
+    const response = await httpClient.get(API_ENDPOINTS.ADMIN_USERS)
+    // Handle API response format: { success: true, message: "...", data: [...] }
+    // Or direct array or other formats for backward compatibility
+    const usersList = Array.isArray(response) 
+      ? response 
+      : response.data || response.users || []
+    // Filter by role="agent"
+    return usersList.filter(user => user.role === 'agent')
   },
 
   /**
    * Create a new agent
-   * @param {Object} agentData - Agent data
+   * Uses POST /api/users with role="agent"
+   * @param {Object} agentData - Agent data (should include role: "agent")
    * @returns {Promise<Object>} Created agent
    */
   async createAgent(agentData) {
-    return await httpClient.post(API_ENDPOINTS.AGENTS, agentData)
+    // Ensure role is set to "agent"
+    const dataWithRole = {
+      ...agentData,
+      role: 'agent'
+    }
+    return await httpClient.post(API_ENDPOINTS.USERS, dataWithRole)
   },
 }
 
 /**
  * Product API Services
+ * All product APIs fetch data from Amazon Product Advertising API
  */
 export const productService = {
   /**
-   * Get all products with filters, pagination, and sorting
+   * Get all products (Admin) - Search and get products from Amazon API
    * @param {Object} params - Query parameters
-   * @returns {Promise<Object>} Products list with pagination info
+   * @param {string} params.keywords - Search keywords (default: "all")
+   * @param {string} params.search - Alternative to keywords
+   * @param {string} params.searchIndex - Amazon search index/category (default: "All")
+   * @param {number} params.itemCount - Number of items to return (default: 10)
+   * @param {number} params.limit - Alternative to itemCount
+   * @param {number} params.minPrice - Minimum price filter
+   * @param {number} params.maxPrice - Maximum price filter
+   * @param {string} params.brand - Brand filter
+   * @param {number} params.page - Page number for pagination (default: 1)
+   * @returns {Promise<Object>} Products list from Amazon API
    */
   async getAllProducts(params = {}) {
     const queryParams = new URLSearchParams()
     
-    Object.keys(params).forEach((key) => {
-      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
-        queryParams.append(key, params[key])
-      }
-    })
+    // Map parameters according to API documentation
+    if (params.keywords !== undefined && params.keywords !== null && params.keywords !== '') {
+      queryParams.append('keywords', params.keywords)
+    } else if (params.search !== undefined && params.search !== null && params.search !== '') {
+      queryParams.append('search', params.search)
+    } else {
+      // Default to "all" if no keywords provided
+      queryParams.append('keywords', 'all')
+    }
+    
+    if (params.searchIndex) queryParams.append('searchIndex', params.searchIndex)
+    if (params.itemCount) queryParams.append('itemCount', params.itemCount)
+    if (params.limit) queryParams.append('limit', params.limit)
+    if (params.minPrice) queryParams.append('minPrice', params.minPrice)
+    if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice)
+    if (params.brand) queryParams.append('brand', params.brand)
+    if (params.page) queryParams.append('page', params.page)
     
     const queryString = queryParams.toString()
     const endpoint = queryString 
       ? `${API_ENDPOINTS.ADMIN_PRODUCTS}?${queryString}`
-      : API_ENDPOINTS.ADMIN_PRODUCTS
+      : `${API_ENDPOINTS.ADMIN_PRODUCTS}?keywords=all`
     
     return await httpClient.get(endpoint)
   },
 
   /**
-   * Get product by ID
+   * Search products (Public) - Search products by keyword query
+   * @param {Object} params - Query parameters
+   * @param {string} params.q - Search query (required)
+   * @param {string} params.searchIndex - Amazon search index (default: "All")
+   * @param {number} params.itemCount - Number of items (default: 10)
+   * @param {number} params.minPrice - Minimum price filter
+   * @param {number} params.maxPrice - Maximum price filter
+   * @param {string} params.brand - Brand filter
+   * @returns {Promise<Object>} Search results from Amazon API
+   */
+  async searchProducts(params = {}) {
+    const queryParams = new URLSearchParams()
+    
+    if (!params.q) {
+      throw new Error('Search query (q) is required')
+    }
+    
+    queryParams.append('q', params.q)
+    if (params.searchIndex) queryParams.append('searchIndex', params.searchIndex)
+    if (params.itemCount) queryParams.append('itemCount', params.itemCount)
+    if (params.minPrice) queryParams.append('minPrice', params.minPrice)
+    if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice)
+    if (params.brand) queryParams.append('brand', params.brand)
+    
+    return await httpClient.get(`/api/products/search?${queryParams.toString()}`)
+  },
+
+  /**
+   * Get products by category (Public)
+   * @param {string} category - Amazon SearchIndex (e.g., "Electronics", "Books", "Clothing", "All")
+   * @param {Object} params - Query parameters
+   * @param {string} params.keywords - Search keywords (required)
+   * @param {number} params.itemCount - Number of items (default: 10)
+   * @param {number} params.minPrice - Minimum price filter
+   * @param {number} params.maxPrice - Maximum price filter
+   * @param {string} params.brand - Brand filter
+   * @returns {Promise<Object>} Products filtered by category
+   */
+  async getProductsByCategory(category, params = {}) {
+    if (!params.keywords) {
+      throw new Error('Keywords are required for category search')
+    }
+    
+    const queryParams = new URLSearchParams()
+    queryParams.append('keywords', params.keywords)
+    if (params.itemCount) queryParams.append('itemCount', params.itemCount)
+    if (params.minPrice) queryParams.append('minPrice', params.minPrice)
+    if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice)
+    if (params.brand) queryParams.append('brand', params.brand)
+    
+    return await httpClient.get(`/api/products/category/${category}?${queryParams.toString()}`)
+  },
+
+  /**
+   * Get product by ASIN (Public)
+   * @param {string} asin - Amazon ASIN (10-character alphanumeric code)
+   * @returns {Promise<Object>} Detailed product information
+   */
+  async getProductByAsin(asin) {
+    if (!asin || asin.length !== 10) {
+      throw new Error('Valid ASIN (10 alphanumeric characters) is required')
+    }
+    return await httpClient.get(`/api/products/${asin}`)
+  },
+
+  /**
+   * Get product by ASIN (Admin)
+   * @param {string} asin - Amazon ASIN (10-character alphanumeric code)
+   * @returns {Promise<Object>} Detailed product information
+   */
+  async getProductByAsinAdmin(asin) {
+    if (!asin || asin.length !== 10) {
+      throw new Error('Valid ASIN (10 alphanumeric characters) is required')
+    }
+    return await httpClient.get(`${API_ENDPOINTS.ADMIN_PRODUCTS}/asin/${asin}`)
+  },
+
+  /**
+   * Get product statistics (Admin)
+   * @returns {Promise<Object>} Product statistics information
+   */
+  async getProductStats() {
+    return await httpClient.get(`${API_ENDPOINTS.ADMIN_PRODUCTS}/stats`)
+  },
+
+  /**
+   * Get product by ID (if stored locally)
    * @param {string} id - Product ID
    * @returns {Promise<Object>} Product data
    */
   async getProductById(id) {
     return await httpClient.get(`${API_ENDPOINTS.ADMIN_PRODUCTS}/${id}`)
-  },
-
-  /**
-   * Get product by ASIN
-   * @param {string} asin - Amazon ASIN
-   * @returns {Promise<Object>} Product data
-   */
-  async getProductByAsin(asin) {
-    return await httpClient.get(`${API_ENDPOINTS.ADMIN_PRODUCTS}/asin/${asin}`)
   },
 
   /**
@@ -169,14 +283,6 @@ export const productService = {
       productIds,
       status,
     })
-  },
-
-  /**
-   * Get product statistics
-   * @returns {Promise<Object>} Product statistics
-   */
-  async getProductStats() {
-    return await httpClient.get(`${API_ENDPOINTS.ADMIN_PRODUCTS}/stats`)
   },
 
   /**

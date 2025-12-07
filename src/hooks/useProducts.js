@@ -22,13 +22,15 @@ export function useProducts(initialFilters = {}) {
     totalPages: 0,
   })
   const [filters, setFilters] = useState({
-    sort: initialFilters.sort || '-createdAt',
-    status: initialFilters.status || '',
+    keywords: initialFilters.keywords || '',
+    search: initialFilters.search || '',
+    searchIndex: initialFilters.searchIndex || initialFilters.category || '',
     category: initialFilters.category || '',
     brand: initialFilters.brand || '',
-    search: initialFilters.search || '',
     minPrice: initialFilters.minPrice || '',
     maxPrice: initialFilters.maxPrice || '',
+    sort: initialFilters.sort || '-createdAt',
+    status: initialFilters.status || '',
     condition: initialFilters.condition || '',
     ...initialFilters,
   })
@@ -38,44 +40,88 @@ export function useProducts(initialFilters = {}) {
       setLoading(true)
       setError(null)
       
+      // Map filters to Amazon API parameters
       const params = {
         page: pagination.page,
-        limit: pagination.limit,
-        sort: filters.sort,
-        ...(filters.status && { status: filters.status }),
-        ...(filters.category && { category: filters.category }),
+        itemCount: pagination.limit,
+        // Use search as keywords if provided, otherwise use keywords filter
+        keywords: filters.search || filters.keywords || 'all',
+        // Map category to searchIndex (Amazon category)
+        ...(filters.category && { searchIndex: filters.category }),
         ...(filters.brand && { brand: filters.brand }),
-        ...(filters.search && { search: filters.search }),
         ...(filters.minPrice && { minPrice: filters.minPrice }),
         ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
-        ...(filters.condition && { condition: filters.condition }),
       }
       
       const response = await productService.getAllProducts(params)
       
-      // Handle different response formats
-      if (response.products && Array.isArray(response.products)) {
-        setProducts(response.products)
-        setPagination(prev => ({
-          ...prev,
-          total: response.total || response.products.length,
-          totalPages: response.totalPages || Math.ceil((response.total || response.products.length) / pagination.limit),
-        }))
-      } else if (Array.isArray(response)) {
-        setProducts(response)
-        setPagination(prev => ({
-          ...prev,
-          total: response.length,
-          totalPages: Math.ceil(response.length / pagination.limit),
-        }))
+      // Handle API response formats according to backend documentation
+      // Admin endpoint: { success: true, pagination: {...}, data: [...] }
+      // Public endpoint: { success: true, page: 1, data: { SearchResult: { Items: [...] } } }
+      let productsData = []
+      let totalCount = 0
+      let currentPage = pagination.page
+      let totalPages = 0
+      let limit = pagination.limit
+      
+      if (response.success) {
+        // Admin endpoint response format
+        if (response.pagination && Array.isArray(response.data)) {
+          productsData = response.data
+          totalCount = response.pagination.total || response.data.length
+          currentPage = response.pagination.page || currentPage
+          totalPages = response.pagination.pages || Math.ceil(totalCount / limit) || 1
+          limit = response.pagination.limit || limit
+        }
+        // Public endpoint response format
+        else if (response.data && response.data.SearchResult && response.data.SearchResult.Items) {
+          productsData = response.data.SearchResult.Items
+          totalCount = response.data.SearchResult.TotalResultCount || productsData.length
+          currentPage = response.page || currentPage
+          totalPages = Math.ceil(totalCount / limit) || 1
+        }
+        // Direct data array (backward compatibility)
+        else if (Array.isArray(response.data)) {
+          productsData = response.data
+          totalCount = response.total || productsData.length
+          totalPages = Math.ceil(totalCount / limit) || 1
+        }
+        // Legacy formats for backward compatibility
+        else if (Array.isArray(response)) {
+          productsData = response
+          totalCount = response.length
+          totalPages = Math.ceil(totalCount / limit) || 1
+        } else if (response.products && Array.isArray(response.products)) {
+          productsData = response.products
+          totalCount = response.total || response.products.length
+          totalPages = Math.ceil(totalCount / limit) || 1
+        } else if (response.SearchResult && response.SearchResult.Items) {
+          productsData = response.SearchResult.Items
+          totalCount = response.SearchResult.TotalResultCount || productsData.length
+          totalPages = Math.ceil(totalCount / limit) || 1
+        }
       } else {
-        setProducts(response.data || [])
-        setPagination(prev => ({
-          ...prev,
-          total: response.total || 0,
-          totalPages: response.totalPages || 0,
-        }))
+        // Handle non-standard responses
+        if (Array.isArray(response)) {
+          productsData = response
+          totalCount = response.length
+        } else if (response.data && Array.isArray(response.data)) {
+          productsData = response.data
+          totalCount = response.total || response.data.length
+        } else {
+          productsData = []
+          totalCount = 0
+        }
+        totalPages = Math.ceil(totalCount / limit) || 1
       }
+      
+      setProducts(productsData)
+      setPagination(prev => ({
+        page: currentPage,
+        limit: limit,
+        total: totalCount,
+        totalPages: totalPages || Math.ceil(totalCount / limit) || 1,
+      }))
     } catch (err) {
       const errorMessage = getErrorMessage(err) || 'Failed to load products'
       setError(errorMessage)

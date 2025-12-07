@@ -19,17 +19,15 @@ export function useAgents() {
     try {
       setLoading(true)
       setError(null)
-      const data = await agentService.getAllAgents()
+      // getAllAgents already returns a filtered array of agents
+      const agentsList = await agentService.getAllAgents()
       
-      // Handle different response formats
-      const agentsList = Array.isArray(data) 
-        ? data 
-        : data.agents || data.data || []
-      
-      setAgents(agentsList)
+      // Ensure we have an array
+      setAgents(Array.isArray(agentsList) ? agentsList : [])
     } catch (err) {
       const errorMessage = getErrorMessage(err) || 'Failed to load agents'
       setError(errorMessage)
+      setAgents([])
     } finally {
       setLoading(false)
     }

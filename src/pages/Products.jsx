@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useProducts } from '../hooks'
 import { formatDate, formatCurrency } from '../utils/formatters'
-import { PRODUCT_STATUS, PRODUCT_CONDITION } from '../constants'
+import { PRODUCT_STATUS, PRODUCT_CONDITION, AMAZON_SEARCH_INDEX } from '../constants'
 import { productService } from '../services/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -63,7 +63,12 @@ function Products() {
     if (selectedProducts.length === products.length) {
       setSelectedProducts([])
     } else {
-      setSelectedProducts(products.map(p => p._id || p.id))
+      // Only select products that have local IDs (stored in database)
+      setSelectedProducts(
+        products
+          .map((p, index) => p._id || p.id || (p.ASIN || p.asin ? `amazon-${index}` : null))
+          .filter(id => id && (id.startsWith('amazon-') ? false : true)) // Only select local products
+      )
     }
   }
 
@@ -129,12 +134,14 @@ function Products() {
 
   const clearFilters = () => {
     updateFilters({
-      status: '',
+      keywords: '',
+      search: '',
+      searchIndex: '',
       category: '',
       brand: '',
-      search: '',
       minPrice: '',
       maxPrice: '',
+      status: '',
       condition: '',
       sort: '-createdAt',
     })
@@ -235,51 +242,62 @@ function Products() {
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Input
-                label="Search"
+                label="Search Keywords"
                 type="text"
-                value={filters.search || ''}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Search by name, ASIN, SKU..."
+                value={filters.search || filters.keywords || ''}
+                onChange={(e) => {
+                  handleFilterChange('search', e.target.value)
+                  handleFilterChange('keywords', e.target.value)
+                }}
+                placeholder="Enter search keywords (e.g., laptop, phone)"
               />
               <div className="flex flex-col gap-2 mb-4">
-                <label className="text-sm font-medium text-gray-700">Status</label>
+                <label className="text-sm font-medium text-gray-700">Amazon Category</label>
                 <select
-                  value={filters.status || ''}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  value={filters.searchIndex || filters.category || ''}
+                  onChange={(e) => {
+                    handleFilterChange('searchIndex', e.target.value)
+                    handleFilterChange('category', e.target.value)
+                  }}
                   className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-md transition-all duration-200 font-inherit outline-none focus:border-blue-600 focus:ring-3 focus:ring-blue-600 focus:ring-opacity-10 cursor-pointer appearance-none bg-white pr-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23333\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E')] bg-no-repeat bg-[right_1rem_center]"
                 >
-                  <option value="">All Statuses</option>
-                  <option value={PRODUCT_STATUS.ACTIVE}>Active</option>
-                  <option value={PRODUCT_STATUS.INACTIVE}>Inactive</option>
-                  <option value={PRODUCT_STATUS.ARCHIVED}>Archived</option>
+                  <option value="">All Categories</option>
+                  <option value={AMAZON_SEARCH_INDEX.ALL}>All</option>
+                  <option value={AMAZON_SEARCH_INDEX.ELECTRONICS}>Electronics</option>
+                  <option value={AMAZON_SEARCH_INDEX.BOOKS}>Books</option>
+                  <option value={AMAZON_SEARCH_INDEX.CLOTHING}>Clothing</option>
+                  <option value={AMAZON_SEARCH_INDEX.HOME_GARDEN}>Home & Garden</option>
+                  <option value={AMAZON_SEARCH_INDEX.SPORTS_OUTDOORS}>Sports & Outdoors</option>
+                  <option value={AMAZON_SEARCH_INDEX.AUTOMOTIVE}>Automotive</option>
+                  <option value={AMAZON_SEARCH_INDEX.BEAUTY}>Beauty</option>
+                  <option value={AMAZON_SEARCH_INDEX.HEALTH_PERSONAL_CARE}>Health & Personal Care</option>
+                  <option value={AMAZON_SEARCH_INDEX.TOYS_GAMES}>Toys & Games</option>
+                  <option value={AMAZON_SEARCH_INDEX.COMPUTERS}>Computers</option>
+                  <option value={AMAZON_SEARCH_INDEX.MUSIC}>Music</option>
+                  <option value={AMAZON_SEARCH_INDEX.MOVIES_TV}>Movies & TV</option>
+                  <option value={AMAZON_SEARCH_INDEX.VIDEO_GAMES}>Video Games</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-2 mb-4">
-                <label className="text-sm font-medium text-gray-700">Condition</label>
-                <select
-                  value={filters.condition || ''}
-                  onChange={(e) => handleFilterChange('condition', e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-md transition-all duration-200 font-inherit outline-none focus:border-blue-600 focus:ring-3 focus:ring-blue-600 focus:ring-opacity-10 cursor-pointer appearance-none bg-white pr-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23333\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E')] bg-no-repeat bg-[right_1rem_center]"
-                >
-                  <option value="">All Conditions</option>
-                  <option value={PRODUCT_CONDITION.NEW}>New</option>
-                  <option value={PRODUCT_CONDITION.USED}>Used</option>
-                  <option value={PRODUCT_CONDITION.REFURBISHED}>Refurbished</option>
-                </select>
-              </div>
-              <Input
-                label="Category"
-                type="text"
-                value={filters.category || ''}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                placeholder="Filter by category"
-              />
               <Input
                 label="Brand"
                 type="text"
                 value={filters.brand || ''}
                 onChange={(e) => handleFilterChange('brand', e.target.value)}
                 placeholder="Filter by brand"
+              />
+              <Input
+                label="Min Price"
+                type="number"
+                value={filters.minPrice || ''}
+                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                placeholder="Minimum price"
+              />
+              <Input
+                label="Max Price"
+                type="number"
+                value={filters.maxPrice || ''}
+                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                placeholder="Maximum price"
               />
               <div className="flex flex-col gap-2 mb-4">
                 <label className="text-sm font-medium text-gray-700">Sort By</label>
@@ -339,15 +357,40 @@ function Products() {
                       <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">ASIN</th>
                       <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Price</th>
                       <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Stock</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Created</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {products.map((product) => {
-                      const productId = product._id || product.id
+                    {products.map((product, index) => {
+                      // Handle Amazon API response format according to backend documentation
+                      // Amazon products have structure: { ASIN, DetailPageURL, Images, ItemInfo, Offers, CustomerReviews, ... }
+                      const productId = product._id || product.id || product.ASIN || product.asin || `amazon-${index}`
+                      const productAsin = product.ASIN || product.asin || 'N/A'
+                      
+                      // Extract title from ItemInfo.Title.DisplayValue (Amazon API format)
+                      const productTitle = product.ItemInfo?.Title?.DisplayValue || 
+                                         product.title || 
+                                         product.Title?.DisplayValue ||
+                                         product.Title ||
+                                         'N/A'
+                      
+                      // Extract image from Images.Primary.Large.URL or Medium.URL (Amazon API format)
+                      const productImage = product.Images?.Primary?.Large?.URL || 
+                                         product.Images?.Primary?.Medium?.URL ||
+                                         product.Images?.Primary?.Small?.URL ||
+                                         product.imageUrl || 
+                                         product.image || 
+                                         null
+                      
+                      // Extract price from Offers.Listings[0].Price (Amazon API format)
+                      const productPrice = product.Offers?.Listings?.[0]?.Price?.DisplayAmount || 
+                                        product.Offers?.Listings?.[0]?.Price?.Amount ||
+                                        product.Price?.DisplayAmount || 
+                                        product.Price?.Amount || 
+                                        product.price || 
+                                        null
                       const isSelected = selectedProducts.includes(productId)
+                      const hasLocalId = product._id || product.id
+                      
                       return (
                         <tr 
                           key={productId} 
@@ -361,60 +404,48 @@ function Products() {
                               checked={isSelected}
                               onChange={() => toggleProductSelection(productId)}
                               className="w-4 h-4 cursor-pointer"
+                              disabled={!hasLocalId}
                             />
                           </td>
                           <td className="px-4 py-4">
-                            {product.imageUrl ? (
+                            {productImage ? (
                               <img 
-                                src={product.imageUrl} 
-                                alt={product.title || 'Product'} 
+                                src={productImage} 
+                                alt={productTitle} 
                                 className="w-12 h-12 object-cover rounded"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                  e.target.nextSibling.style.display = 'flex'
+                                }}
                               />
-                            ) : (
-                              <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded text-2xl">📦</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 text-gray-900 font-semibold max-w-xs truncate">{product.title || 'N/A'}</td>
-                          <td className="px-4 py-4 text-blue-600 font-mono text-sm">{product.asin || 'N/A'}</td>
-                          <td className="px-4 py-4 text-green-700 font-semibold">
-                            {product.price ? formatCurrency(product.price) : 'N/A'}
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                              product.status === PRODUCT_STATUS.ACTIVE
-                                ? 'bg-green-100 text-green-700'
-                                : product.status === PRODUCT_STATUS.INACTIVE
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {product.status || 'active'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-gray-600">{product.stock || 'N/A'}</td>
-                          <td className="px-4 py-4 text-gray-600 text-sm">
-                            {product.createdAt ? formatDate(product.createdAt) : 'N/A'}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="secondary"
-                                size="small"
-                                onClick={() => handleSyncProduct(productId)}
-                                disabled={operationLoading}
-                                title="Sync with Amazon"
-                              >
-                                🔄
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="small"
-                                onClick={() => handleDeleteProduct(productId)}
-                                disabled={operationLoading}
-                                title="Delete"
-                              >
-                                🗑️
-                              </Button>
+                            ) : null}
+                            <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded text-2xl" style={{ display: productImage ? 'none' : 'flex' }}>
+                              📦
                             </div>
+                          </td>
+                          <td className="px-4 py-4 text-gray-900 font-semibold max-w-xs truncate" title={productTitle}>
+                            {productTitle}
+                          </td>
+                          <td className="px-4 py-4 text-blue-600 font-mono text-sm">{productAsin}</td>
+                          <td className="px-4 py-4 text-green-700 font-semibold">
+                            {productPrice ? (typeof productPrice === 'string' ? productPrice : formatCurrency(productPrice)) : 'N/A'}
+                          </td>
+                          <td className="px-4 py-4">
+                            {hasLocalId ? (
+                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase ${
+                                product.status === PRODUCT_STATUS.ACTIVE
+                                  ? 'bg-green-100 text-green-700'
+                                  : product.status === PRODUCT_STATUS.INACTIVE
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {product.status || 'active'}
+                              </span>
+                            ) : (
+                              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase bg-blue-100 text-blue-700">
+                                Amazon
+                              </span>
+                            )}
                           </td>
                         </tr>
                       )
