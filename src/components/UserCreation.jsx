@@ -3,9 +3,8 @@
  * Form for creating new users with validation
  */
 import { useState } from 'react'
-import { userService } from '../services/api'
+import { apiCall } from '../services/api'
 import { USER_ROLES } from '../constants'
-import { getErrorMessage } from '../utils/errorHandler'
 import Input from './ui/Input'
 import Button from './ui/Button'
 import ErrorMessage from './ui/ErrorMessage'
@@ -51,20 +50,27 @@ function UserCreation({ onUserCreated }) {
     setSuccess(false)
 
     try {
-      await userService.createUser(formData)
-      setSuccess(true)
-      resetForm()
-      
-      // Notify parent component
-      if (onUserCreated) {
-        onUserCreated()
+      const response = await apiCall('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setSuccess(true)
+        resetForm()
+        
+        // Notify parent component
+        if (onUserCreated) {
+          onUserCreated()
+        }
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(false), 3000)
+      } else {
+        setError(response.data?.message || 'Failed to create user')
       }
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to create user'
-      setError(errorMessage)
+      setError(err.message || 'Failed to create user')
     } finally {
       setLoading(false)
     }

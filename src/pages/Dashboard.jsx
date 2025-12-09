@@ -1,90 +1,71 @@
 /**
  * Dashboard Page Component
- * Displays overview statistics and recent activity
+ * Minimalist design matching React Native pattern
  */
 import { useDashboardStats } from '../hooks'
 import { formatCurrency, formatNumber } from '../utils/formatters'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import ErrorMessage from '../components/ui/ErrorMessage'
-import Card from '../components/ui/Card'
-import Button from '../components/ui/Button'
 
 function Dashboard() {
   const { stats, loading, error, refetch } = useDashboardStats()
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-gray-900 text-3xl font-semibold mb-2">Dashboard</h1>
-          <p className="text-gray-600 text-base m-0">Welcome to HasCart Admin Panel</p>
-        </div>
-        {error && (
-          <Button 
-            variant="secondary" 
-            size="small" 
-            onClick={refetch}
-            disabled={loading}
-          >
-            Retry
-          </Button>
-        )}
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="mb-12">
+        <h1 className="text-3xl font-light tracking-wide text-black mb-2">
+          Dashboard.
+        </h1>
+        <p className="text-xs text-gray-400 tracking-widest uppercase">
+          Overview
+        </p>
       </div>
 
       {error && (
-        <ErrorMessage 
-          message={error} 
-          onDismiss={() => {}} 
-          className="mb-6"
-        />
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded">
+          <p className="text-sm text-black">{error}</p>
+          <button
+            onClick={refetch}
+            disabled={loading}
+            className="mt-2 text-xs font-bold tracking-wide uppercase border-b border-black hover:opacity-70"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       {loading ? (
-        <LoadingSpinner 
-          size="large" 
-          message="Loading dashboard data..." 
-          className="py-20"
-        />
+        <div className="flex justify-center items-center py-20">
+          <div className="text-black text-sm tracking-wide">Loading...</div>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="flex items-center gap-4 p-6 hover:shadow-md transition-shadow">
-              <div className="text-4xl">👥</div>
-              <div>
-                <h3 className="text-gray-600 text-sm font-medium mb-1">Total Users</h3>
-                <p className="text-gray-900 text-2xl font-bold">{formatNumber(stats.totalUsers)}</p>
-              </div>
-            </Card>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="border-b border-gray-200 pb-6">
+              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">Total Users</p>
+              <p className="text-3xl font-light text-black">{formatNumber(stats.totalUsers)}</p>
+            </div>
 
-            <Card className="flex items-center gap-4 p-6 hover:shadow-md transition-shadow">
-              <div className="text-4xl">📦</div>
-              <div>
-                <h3 className="text-gray-600 text-sm font-medium mb-1">Total Products</h3>
-                <p className="text-gray-900 text-2xl font-bold">{formatNumber(stats.totalProducts)}</p>
-              </div>
-            </Card>
+            <div className="border-b border-gray-200 pb-6">
+              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">Total Products</p>
+              <p className="text-3xl font-light text-black">{formatNumber(stats.totalProducts)}</p>
+            </div>
 
-            <Card className="flex items-center gap-4 p-6 hover:shadow-md transition-shadow">
-              <div className="text-4xl">🛒</div>
-              <div>
-                <h3 className="text-gray-600 text-sm font-medium mb-1">Total Orders</h3>
-                <p className="text-gray-900 text-2xl font-bold">{formatNumber(stats.totalOrders)}</p>
-              </div>
-            </Card>
+            <div className="border-b border-gray-200 pb-6">
+              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">Total Orders</p>
+              <p className="text-3xl font-light text-black">{formatNumber(stats.totalOrders)}</p>
+            </div>
 
-            <Card className="flex items-center gap-4 p-6 hover:shadow-md transition-shadow">
-              <div className="text-4xl">💰</div>
-              <div>
-                <h3 className="text-gray-600 text-sm font-medium mb-1">Total Revenue</h3>
-                <p className="text-gray-900 text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
-              </div>
-            </Card>
+            <div className="border-b border-gray-200 pb-6">
+              <p className="text-xs uppercase tracking-wider text-gray-400 mb-3">Total Revenue</p>
+              <p className="text-3xl font-light text-black">{formatCurrency(stats.totalRevenue)}</p>
+            </div>
           </div>
 
-          <div>
-            <Card title="Recent Activity">
-              <p className="text-center py-12 px-8 text-gray-400 italic">No recent activity to display</p>
-            </Card>
+          {/* Recent Activity */}
+          <div className="border-t border-gray-200 pt-8">
+            <h2 className="text-xl font-light tracking-wide text-black mb-6">Recent Activity</h2>
+            <p className="text-sm text-gray-400 italic">No recent activity to display</p>
           </div>
         </>
       )}

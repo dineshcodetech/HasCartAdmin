@@ -8,11 +8,6 @@ import { formatDate } from '../utils/formatters'
 import { USER_ROLES } from '../constants'
 import { APP_CONFIG } from '../config'
 import UserCreation from '../components/UserCreation'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import ErrorMessage from '../components/ui/ErrorMessage'
-import Card from '../components/ui/Card'
-import Button from '../components/ui/Button'
-import Pagination from '../components/ui/Pagination'
 
 function Users() {
   const { users, loading, error, refetch } = useUsers()
@@ -60,100 +55,93 @@ function Users() {
   }, [roleFilter])
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <h1 className="text-gray-900 text-3xl font-semibold mb-2">User Management</h1>
-          <p className="text-gray-600 text-base m-0">Create and manage users</p>
-        </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          <div className="m-0">
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="mb-12">
+        <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-light tracking-wide text-black mb-2">
+              Users.
+            </h1>
+            <p className="text-xs text-gray-400 tracking-widest uppercase">
+              User Management
+            </p>
+          </div>
+          <div className="flex gap-3 items-center flex-wrap">
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-2 text-sm border-2 border-gray-200 rounded-lg transition-all duration-200 bg-white cursor-pointer appearance-none focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-500 focus:ring-opacity-10 min-w-[150px] pr-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23333\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E')] bg-no-repeat bg-[right_1rem_center]"
+              className="px-4 py-2 text-xs border-b border-gray-200 bg-transparent text-black font-medium tracking-wide outline-none focus:border-black cursor-pointer"
             >
               <option value="">All Roles</option>
               <option value={USER_ROLES.USER}>Users</option>
               <option value={USER_ROLES.AGENT}>Agents</option>
               <option value={USER_ROLES.ADMIN}>Admins</option>
             </select>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border border-black hover:bg-black hover:text-white transition-colors"
+            >
+              {showCreateForm ? 'Cancel' : 'Create User'}
+            </button>
+            <button
+              onClick={refetch}
+              disabled={loading}
+              className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-black hover:opacity-70 disabled:opacity-40"
+            >
+              Refresh
+            </button>
           </div>
-          <Button 
-            variant="primary" 
-            size="medium" 
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="font-semibold bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            {showCreateForm ? '✕ Cancel' : '+ Create New User'}
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="small" 
-            onClick={refetch}
-            disabled={loading}
-            loading={loading}
-          >
-            🔄 Refresh
-          </Button>
         </div>
       </div>
 
       {error && (
-        <ErrorMessage 
-          message={error} 
-          onDismiss={() => {}} 
-          className="mb-6"
-        />
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
+          <p className="text-sm text-black">{error}</p>
+        </div>
       )}
 
       <div className="flex flex-col gap-8">
         {showCreateForm && (
-          <div className="animate-slideDown">
+          <div>
             <UserCreation onUserCreated={handleUserCreated} />
           </div>
         )}
         
-        <Card 
-          title={`All Users (${filteredUsers.length}${roleFilter ? ` - Filtered by ${roleFilter}` : ''})`}
-          className="overflow-hidden"
-        >
+        <div className="border-t border-gray-200 pt-8">
+          <h2 className="text-xl font-light tracking-wide text-black mb-6">
+            All Users ({filteredUsers.length}{roleFilter ? ` - ${roleFilter}` : ''})
+          </h2>
+          
           {loading ? (
-            <LoadingSpinner 
-              message="Loading users..." 
-              className="py-12"
-            />
+            <div className="flex justify-center items-center py-12">
+              <div className="text-black text-sm tracking-wide">Loading...</div>
+            </div>
           ) : filteredUsers.length > 0 ? (
             <>
-              <div className="overflow-x-auto -m-6 p-6">
-                <table className="w-full border-collapse bg-white">
-                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Mobile</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Role</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Created Date</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Mobile</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Role</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Created Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentUsers.map((user, index) => (
-                      <tr key={user._id || index} className="transition-colors hover:bg-gray-50 border-b border-gray-200 last:border-b-0">
-                        <td className="px-4 py-4 text-gray-900 font-semibold">{user.name || 'N/A'}</td>
-                        <td className="px-4 py-4 text-blue-600">{user.email || 'N/A'}</td>
-                        <td className="px-4 py-4 text-gray-600 font-mono">{user.mobile || 'N/A'}</td>
+                      <tr key={user._id || index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4 text-black font-medium">{user.name || 'N/A'}</td>
+                        <td className="px-4 py-4 text-black">{user.email || 'N/A'}</td>
+                        <td className="px-4 py-4 text-black font-mono text-sm">{user.mobile || 'N/A'}</td>
                         <td className="px-4 py-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                            user.role === USER_ROLES.ADMIN 
-                              ? 'bg-orange-100 text-orange-700' 
-                              : user.role === USER_ROLES.AGENT
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-blue-100 text-blue-700'
-                          }`}>
+                          <span className="text-xs font-bold uppercase tracking-wider text-black">
                             {user.role === USER_ROLES.ADMIN ? 'Admin' : user.role === USER_ROLES.AGENT ? 'Agent' : 'User'}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-gray-600 text-sm">
+                        <td className="px-4 py-4 text-black text-sm">
                           {user.createdAt ? formatDate(user.createdAt) : 'N/A'}
                         </td>
                       </tr>
@@ -163,19 +151,54 @@ function Users() {
               </div>
 
               {/* Pagination Controls */}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredUsers.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-                itemName="users"
-              />
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                  <div className="text-sm text-gray-400">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 text-xs font-bold tracking-wide uppercase border ${
+                              currentPage === page
+                                ? 'bg-black text-white border-black'
+                                : 'border-black hover:bg-black hover:text-white'
+                            } transition-colors`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-2 text-black">...</span>
+                      }
+                      return null
+                    })}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-            <p className="text-center py-12 px-8 text-gray-400 italic">No users found</p>
+            <p className="text-center py-12 text-gray-400 italic">No users found</p>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   )

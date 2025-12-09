@@ -1,10 +1,9 @@
 /**
  * Custom hook for fetching and managing users
- * Provides loading, error, and data states with refetch capability
+ * Simplified to match React Native pattern
  */
 import { useState, useEffect, useCallback } from 'react'
-import { userService } from '../services/api'
-import { getErrorMessage } from '../utils/errorHandler'
+import { apiCall } from '../services/api'
 
 /**
  * Hook to fetch and manage users list
@@ -19,17 +18,20 @@ export function useUsers() {
     try {
       setLoading(true)
       setError(null)
-      const data = await userService.getAllUsers()
+      const response = await apiCall('/api/admin/users', { method: 'GET' })
       
-      // Handle different response formats
-      const usersList = Array.isArray(data) 
-        ? data 
-        : data.users || data.data || []
-      
-      setUsers(usersList)
+      if (response.ok && response.data) {
+        const data = response.data
+        const usersList = Array.isArray(data) 
+          ? data 
+          : data.users || data.data || []
+        setUsers(usersList)
+      } else {
+        setError(response.data?.message || 'Failed to load users')
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to load users'
-      setError(errorMessage)
+      setError(err.message || 'Failed to load users')
+      setUsers([])
     } finally {
       setLoading(false)
     }

@@ -1,10 +1,9 @@
 /**
  * Custom hook for fetching and managing products
- * Provides loading, error, pagination, filtering, and data states
+ * Simplified to match React Native pattern
  */
 import { useState, useEffect, useCallback } from 'react'
-import { productService } from '../services/api'
-import { getErrorMessage } from '../utils/errorHandler'
+import { apiCall } from '../services/api'
 
 /**
  * Hook to fetch and manage products list with pagination and filtering
@@ -40,91 +39,57 @@ export function useProducts(initialFilters = {}) {
       setLoading(true)
       setError(null)
       
-      // Map filters to Amazon API parameters
-      const params = {
-        page: pagination.page,
-        itemCount: pagination.limit,
-        // Use search as keywords if provided, otherwise use keywords filter
-        keywords: filters.search || filters.keywords || 'all',
-        // Map category to searchIndex (Amazon category)
-        ...(filters.category && { searchIndex: filters.category }),
-        ...(filters.brand && { brand: filters.brand }),
-        ...(filters.minPrice && { minPrice: filters.minPrice }),
-        ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
+      // Build query string - matches React Native pattern
+      const queryParams = new URLSearchParams()
+      const keywords = filters.search || filters.keywords || 'all'
+      queryParams.append('keywords', keywords)
+      queryParams.append('itemCount', pagination.limit)
+      queryParams.append('page', pagination.page)
+      
+      if (filters.searchIndex || filters.category) {
+        queryParams.append('searchIndex', filters.searchIndex || filters.category)
       }
+      if (filters.brand) queryParams.append('brand', filters.brand)
+      if (filters.minPrice) queryParams.append('minPrice', filters.minPrice)
+      if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice)
       
-      const response = await productService.getAllProducts(params)
+      const response = await apiCall(`/api/admin/products?${queryParams.toString()}`, {
+        method: 'GET',
+      })
       
-      // Handle API response formats according to backend documentation
-      // Admin endpoint: { success: true, pagination: {...}, data: [...] }
-      // Public endpoint: { success: true, page: 1, data: { SearchResult: { Items: [...] } } }
+      // Handle response - simplified pattern
       let productsData = []
       let totalCount = 0
-      let currentPage = pagination.page
-      let totalPages = 0
-      let limit = pagination.limit
       
-      if (response.success) {
-        // Admin endpoint response format
-        if (response.pagination && Array.isArray(response.data)) {
-          productsData = response.data
-          totalCount = response.pagination.total || response.data.length
-          currentPage = response.pagination.page || currentPage
-          totalPages = response.pagination.pages || Math.ceil(totalCount / limit) || 1
-          limit = response.pagination.limit || limit
+      if (response.ok && response.data) {
+        const data = response.data
+        
+        // Handle different response formats
+        if (data.success) {
+          if (data.data && Array.isArray(data.data)) {
+            productsData = data.data
+            totalCount = data.pagination?.total || data.data.length
+          } else if (data.data?.SearchResult?.Items) {
+            productsData = data.data.SearchResult.Items
+            totalCount = data.data.SearchResult.TotalResultCount || productsData.length
+          }
+        } else if (Array.isArray(data)) {
+          productsData = data
+          totalCount = data.length
+        } else if (data.data && Array.isArray(data.data)) {
+          productsData = data.data
+          totalCount = data.total || data.data.length
         }
-        // Public endpoint response format
-        else if (response.data && response.data.SearchResult && response.data.SearchResult.Items) {
-          productsData = response.data.SearchResult.Items
-          totalCount = response.data.SearchResult.TotalResultCount || productsData.length
-          currentPage = response.page || currentPage
-          totalPages = Math.ceil(totalCount / limit) || 1
-        }
-        // Direct data array (backward compatibility)
-        else if (Array.isArray(response.data)) {
-          productsData = response.data
-          totalCount = response.total || productsData.length
-          totalPages = Math.ceil(totalCount / limit) || 1
-        }
-        // Legacy formats for backward compatibility
-        else if (Array.isArray(response)) {
-          productsData = response
-          totalCount = response.length
-          totalPages = Math.ceil(totalCount / limit) || 1
-        } else if (response.products && Array.isArray(response.products)) {
-          productsData = response.products
-          totalCount = response.total || response.products.length
-          totalPages = Math.ceil(totalCount / limit) || 1
-        } else if (response.SearchResult && response.SearchResult.Items) {
-          productsData = response.SearchResult.Items
-          totalCount = response.SearchResult.TotalResultCount || productsData.length
-          totalPages = Math.ceil(totalCount / limit) || 1
-        }
-      } else {
-        // Handle non-standard responses
-        if (Array.isArray(response)) {
-          productsData = response
-          totalCount = response.length
-        } else if (response.data && Array.isArray(response.data)) {
-          productsData = response.data
-          totalCount = response.total || response.data.length
-        } else {
-          productsData = []
-          totalCount = 0
-        }
-        totalPages = Math.ceil(totalCount / limit) || 1
       }
       
       setProducts(productsData)
       setPagination(prev => ({
-        page: currentPage,
-        limit: limit,
+        ...prev,
         total: totalCount,
-        totalPages: totalPages || Math.ceil(totalCount / limit) || 1,
+        totalPages: Math.ceil(totalCount / prev.limit) || 1,
       }))
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to load products'
-      setError(errorMessage)
+      setError(err.message || 'Failed to load products')
       setProducts([])
     } finally {
       setLoading(false)

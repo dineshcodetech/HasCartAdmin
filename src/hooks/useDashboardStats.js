@@ -1,10 +1,9 @@
 /**
  * Custom hook for fetching dashboard statistics
- * Provides loading, error, and data states
+ * Simplified to match React Native pattern
  */
 import { useState, useEffect, useCallback } from 'react'
-import { adminService } from '../services/api'
-import { getErrorMessage } from '../utils/errorHandler'
+import { apiCall } from '../services/api'
 
 /**
  * Hook to fetch and manage dashboard statistics
@@ -24,17 +23,21 @@ export function useDashboardStats() {
     try {
       setLoading(true)
       setError(null)
-      const data = await adminService.getDashboardStats()
+      const response = await apiCall('/api/admin/dashboard', { method: 'GET' })
       
-      setStats({
-        totalUsers: data.totalUsers || 0,
-        totalProducts: data.totalProducts || 0,
-        totalOrders: data.totalOrders || 0,
-        totalRevenue: data.totalRevenue || 0,
-      })
+      if (response.ok && response.data) {
+        const data = response.data
+        setStats({
+          totalUsers: data.totalUsers || 0,
+          totalProducts: data.totalProducts || 0,
+          totalOrders: data.totalOrders || 0,
+          totalRevenue: data.totalRevenue || 0,
+        })
+      } else {
+        setError(response.data?.message || 'Failed to load dashboard statistics')
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to load dashboard statistics'
-      setError(errorMessage)
+      setError(err.message || 'Failed to load dashboard statistics')
     } finally {
       setLoading(false)
     }

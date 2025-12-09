@@ -6,13 +6,7 @@ import { useState, useEffect } from 'react'
 import { useProducts } from '../hooks'
 import { formatDate, formatCurrency } from '../utils/formatters'
 import { PRODUCT_STATUS, PRODUCT_CONDITION, AMAZON_SEARCH_INDEX } from '../constants'
-import { productService } from '../services/api'
-import { getErrorMessage } from '../utils/errorHandler'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import ErrorMessage from '../components/ui/ErrorMessage'
-import Card from '../components/ui/Card'
-import Button from '../components/ui/Button'
-import Input from '../components/ui/Input'
+import { apiCall } from '../services/api'
 
 function Products() {
   const { products, loading, error, pagination, filters, updateFilters, updatePagination, refetch } = useProducts()
@@ -80,19 +74,33 @@ function Products() {
     setOperationSuccess('')
 
     try {
+      let response
       if (bulkAction === 'delete') {
-        await productService.bulkDeleteProducts(selectedProducts)
-        setOperationSuccess(`Successfully deleted ${selectedProducts.length} product(s)`)
+        response = await apiCall('/api/admin/products/bulk', {
+          method: 'DELETE',
+          body: JSON.stringify({ productIds: selectedProducts }),
+        })
       } else {
-        await productService.bulkUpdateStatus(selectedProducts, bulkAction)
-        setOperationSuccess(`Successfully updated ${selectedProducts.length} product(s) status to ${bulkAction}`)
+        response = await apiCall('/api/admin/products/bulk/status', {
+          method: 'PATCH',
+          body: JSON.stringify({ productIds: selectedProducts, status: bulkAction }),
+        })
       }
-      setSelectedProducts([])
-      setBulkAction('')
-      refetch()
+
+      if (response.ok) {
+        setOperationSuccess(
+          bulkAction === 'delete'
+            ? `Successfully deleted ${selectedProducts.length} product(s)`
+            : `Successfully updated ${selectedProducts.length} product(s) status to ${bulkAction}`
+        )
+        setSelectedProducts([])
+        setBulkAction('')
+        refetch()
+      } else {
+        setOperationError(response.data?.message || 'Failed to perform bulk operation')
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to perform bulk operation'
-      setOperationError(errorMessage)
+      setOperationError(err.message || 'Failed to perform bulk operation')
     } finally {
       setOperationLoading(false)
     }
@@ -105,12 +113,18 @@ function Products() {
     setOperationError('')
 
     try {
-      await productService.deleteProduct(productId)
-      setOperationSuccess('Product deleted successfully')
-      refetch()
+      const response = await apiCall(`/api/admin/products/${productId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setOperationSuccess('Product deleted successfully')
+        refetch()
+      } else {
+        setOperationError(response.data?.message || 'Failed to delete product')
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to delete product'
-      setOperationError(errorMessage)
+      setOperationError(err.message || 'Failed to delete product')
     } finally {
       setOperationLoading(false)
     }
@@ -121,12 +135,18 @@ function Products() {
     setOperationError('')
 
     try {
-      await productService.syncProduct(productId)
-      setOperationSuccess('Product synced successfully')
-      refetch()
+      const response = await apiCall(`/api/admin/products/${productId}/sync`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        setOperationSuccess('Product synced successfully')
+        refetch()
+      } else {
+        setOperationError(response.data?.message || 'Failed to sync product')
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to sync product'
-      setOperationError(errorMessage)
+      setOperationError(err.message || 'Failed to sync product')
     } finally {
       setOperationLoading(false)
     }
@@ -150,61 +170,60 @@ function Products() {
   const totalPages = pagination.totalPages || Math.ceil((pagination.total || products.length) / pagination.limit)
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <h1 className="text-gray-900 text-3xl font-semibold mb-2">Product Management</h1>
-          <p className="text-gray-600 text-base m-0">Manage your product catalog</p>
-        </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          <Button 
-            variant="secondary" 
-            size="small" 
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            {showFilters ? '✕ Hide Filters' : '🔍 Filters'}
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="small" 
-            onClick={refetch}
-            disabled={loading || operationLoading}
-            loading={loading || operationLoading}
-          >
-            🔄 Refresh
-          </Button>
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="mb-12">
+        <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-light tracking-wide text-black mb-2">
+              Products.
+            </h1>
+            <p className="text-xs text-gray-400 tracking-widest uppercase">
+              Product Management
+            </p>
+          </div>
+          <div className="flex gap-3 items-center flex-wrap">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-black hover:opacity-70"
+            >
+              {showFilters ? 'Hide Filters' : 'Filters'}
+            </button>
+            <button
+              onClick={refetch}
+              disabled={loading || operationLoading}
+              className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-black hover:opacity-70 disabled:opacity-40"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
       {(error || operationError) && (
-        <ErrorMessage 
-          message={operationError || error} 
-          onDismiss={() => {
-            setOperationError('')
-            setOperationSuccess('')
-          }}
-          className="mb-6"
-        />
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
+          <p className="text-sm text-black">{operationError || error}</p>
+        </div>
       )}
 
       {operationSuccess && (
-        <div className="p-4 rounded-lg bg-green-50 text-green-800 border border-green-200 font-medium mb-6">
-          ✓ {operationSuccess}
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
+          <p className="text-sm text-black">✓ {operationSuccess}</p>
         </div>
       )}
 
       {/* Bulk Actions */}
       {selectedProducts.length > 0 && (
-        <Card className="bg-yellow-50 border-yellow-300 mb-6">
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
           <div className="flex justify-between items-center gap-4 flex-wrap">
-            <span className="font-semibold text-yellow-800">
+            <span className="text-sm font-bold text-black uppercase tracking-wide">
               {selectedProducts.length} product(s) selected
             </span>
             <div className="flex gap-2 items-center flex-wrap">
               <select
                 value={bulkAction}
                 onChange={(e) => setBulkAction(e.target.value)}
-                className="px-4 py-2 text-sm border-2 border-gray-200 rounded-lg bg-white cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20"
+                className="px-4 py-2 text-xs border-b border-gray-200 bg-transparent text-black font-medium tracking-wide outline-none focus:border-black cursor-pointer"
               >
                 <option value="">Select action...</option>
                 <option value={PRODUCT_STATUS.ACTIVE}>Set Active</option>
@@ -212,54 +231,55 @@ function Products() {
                 <option value={PRODUCT_STATUS.ARCHIVED}>Set Archived</option>
                 <option value="delete">Delete</option>
               </select>
-              <Button
-                variant="primary"
-                size="small"
+              <button
                 onClick={handleBulkOperation}
                 disabled={!bulkAction || operationLoading}
-                loading={operationLoading}
+                className="px-4 py-2 text-xs font-bold tracking-[0.15em] uppercase bg-black text-white hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Apply
-              </Button>
-              <Button
-                variant="secondary"
-                size="small"
+                {operationLoading ? '...' : 'Apply'}
+              </button>
+              <button
                 onClick={() => {
                   setSelectedProducts([])
                   setBulkAction('')
                 }}
+                className="px-4 py-2 text-xs font-bold tracking-[0.15em] uppercase border border-black hover:bg-black hover:text-white transition-colors"
               >
                 Clear
-              </Button>
+              </button>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Filters */}
       {showFilters && (
-        <Card title="Filters" className="bg-gray-50 mb-6">
+        <div className="mb-6 p-6 bg-gray-50 border border-gray-200">
+          <h2 className="text-xl font-light tracking-wide text-black mb-6">Filters</h2>
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Input
-                label="Search Keywords"
-                type="text"
-                value={filters.search || filters.keywords || ''}
-                onChange={(e) => {
-                  handleFilterChange('search', e.target.value)
-                  handleFilterChange('keywords', e.target.value)
-                }}
-                placeholder="Enter search keywords (e.g., laptop, phone)"
-              />
-              <div className="flex flex-col gap-2 mb-4">
-                <label className="text-sm font-medium text-gray-700">Amazon Category</label>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Search Keywords</label>
+                <input
+                  type="text"
+                  value={filters.search || filters.keywords || ''}
+                  onChange={(e) => {
+                    handleFilterChange('search', e.target.value)
+                    handleFilterChange('keywords', e.target.value)
+                  }}
+                  placeholder="Enter search keywords"
+                  className="w-full border-b border-gray-200 py-2 text-sm text-black font-medium tracking-wide outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Amazon Category</label>
                 <select
                   value={filters.searchIndex || filters.category || ''}
                   onChange={(e) => {
                     handleFilterChange('searchIndex', e.target.value)
                     handleFilterChange('category', e.target.value)
                   }}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-md transition-all duration-200 font-inherit outline-none focus:border-blue-600 focus:ring-3 focus:ring-blue-600 focus:ring-opacity-10 cursor-pointer appearance-none bg-white pr-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23333\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E')] bg-no-repeat bg-[right_1rem_center]"
+                  className="w-full px-4 py-2 text-xs border-b border-gray-200 bg-transparent text-black font-medium tracking-wide outline-none focus:border-black cursor-pointer"
                 >
                   <option value="">All Categories</option>
                   <option value={AMAZON_SEARCH_INDEX.ALL}>All</option>
@@ -278,33 +298,42 @@ function Products() {
                   <option value={AMAZON_SEARCH_INDEX.VIDEO_GAMES}>Video Games</option>
                 </select>
               </div>
-              <Input
-                label="Brand"
-                type="text"
-                value={filters.brand || ''}
-                onChange={(e) => handleFilterChange('brand', e.target.value)}
-                placeholder="Filter by brand"
-              />
-              <Input
-                label="Min Price"
-                type="number"
-                value={filters.minPrice || ''}
-                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                placeholder="Minimum price"
-              />
-              <Input
-                label="Max Price"
-                type="number"
-                value={filters.maxPrice || ''}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                placeholder="Maximum price"
-              />
-              <div className="flex flex-col gap-2 mb-4">
-                <label className="text-sm font-medium text-gray-700">Sort By</label>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Brand</label>
+                <input
+                  type="text"
+                  value={filters.brand || ''}
+                  onChange={(e) => handleFilterChange('brand', e.target.value)}
+                  placeholder="Filter by brand"
+                  className="w-full border-b border-gray-200 py-2 text-sm text-black font-medium tracking-wide outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Min Price</label>
+                <input
+                  type="number"
+                  value={filters.minPrice || ''}
+                  onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                  placeholder="Minimum price"
+                  className="w-full border-b border-gray-200 py-2 text-sm text-black font-medium tracking-wide outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Max Price</label>
+                <input
+                  type="number"
+                  value={filters.maxPrice || ''}
+                  onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                  placeholder="Maximum price"
+                  className="w-full border-b border-gray-200 py-2 text-sm text-black font-medium tracking-wide outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-gray-400 mb-2 block">Sort By</label>
                 <select
                   value={filters.sort || '-createdAt'}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-md transition-all duration-200 font-inherit outline-none focus:border-blue-600 focus:ring-3 focus:ring-blue-600 focus:ring-opacity-10 cursor-pointer appearance-none bg-white pr-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23333\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E')] bg-no-repeat bg-[right_1rem_center]"
+                  className="w-full px-4 py-2 text-xs border-b border-gray-200 bg-transparent text-black font-medium tracking-wide outline-none focus:border-black cursor-pointer"
                 >
                   <option value="-createdAt">Newest First</option>
                   <option value="createdAt">Oldest First</option>
@@ -315,36 +344,35 @@ function Products() {
                 </select>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                size="small"
+            <div className="flex justify-end gap-2 mt-4">
+              <button
                 onClick={clearFilters}
+                className="px-4 py-2 text-xs font-bold tracking-[0.15em] uppercase border border-black hover:bg-black hover:text-white transition-colors"
               >
                 Clear Filters
-              </Button>
+              </button>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       <div className="flex flex-col gap-8">
-        <Card 
-          title={`All Products (${pagination.total || products.length})`}
-          className="overflow-hidden"
-        >
+        <div className="border-t border-gray-200 pt-8">
+          <h2 className="text-xl font-light tracking-wide text-black mb-6">
+            All Products ({pagination.total || products.length})
+          </h2>
+          
           {loading ? (
-            <LoadingSpinner 
-              message="Loading products..." 
-              className="py-12"
-            />
+            <div className="flex justify-center items-center py-12">
+              <div className="text-black text-sm tracking-wide">Loading...</div>
+            </div>
           ) : products.length > 0 ? (
             <>
-              <div className="overflow-x-auto -m-6 p-6">
-                <table className="w-full border-collapse bg-white">
-                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">
                         <input
                           type="checkbox"
                           checked={selectedProducts.length === products.length && products.length > 0}
@@ -352,11 +380,11 @@ function Products() {
                           className="w-4 h-4 cursor-pointer"
                         />
                       </th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Image</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Title</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">ASIN</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Price</th>
-                      <th className="px-4 py-4 text-left font-semibold text-gray-700 text-xs uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Image</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Title</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">ASIN</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Price</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -394,8 +422,8 @@ function Products() {
                       return (
                         <tr 
                           key={productId} 
-                          className={`transition-colors border-b border-gray-200 last:border-b-0 ${
-                            isSelected ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                          className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${
+                            isSelected ? 'bg-gray-100' : ''
                           }`}
                         >
                           <td className="px-4 py-4">
@@ -412,37 +440,31 @@ function Products() {
                               <img 
                                 src={productImage} 
                                 alt={productTitle} 
-                                className="w-12 h-12 object-cover rounded"
+                                className="w-12 h-12 object-cover"
                                 onError={(e) => {
                                   e.target.style.display = 'none'
                                   e.target.nextSibling.style.display = 'flex'
                                 }}
                               />
                             ) : null}
-                            <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded text-2xl" style={{ display: productImage ? 'none' : 'flex' }}>
+                            <div className="w-12 h-12 flex items-center justify-center bg-gray-100 text-2xl" style={{ display: productImage ? 'none' : 'flex' }}>
                               📦
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-gray-900 font-semibold max-w-xs truncate" title={productTitle}>
+                          <td className="px-4 py-4 text-black font-medium max-w-xs truncate" title={productTitle}>
                             {productTitle}
                           </td>
-                          <td className="px-4 py-4 text-blue-600 font-mono text-sm">{productAsin}</td>
-                          <td className="px-4 py-4 text-green-700 font-semibold">
+                          <td className="px-4 py-4 text-black font-mono text-sm">{productAsin}</td>
+                          <td className="px-4 py-4 text-black font-medium">
                             {productPrice ? (typeof productPrice === 'string' ? productPrice : formatCurrency(productPrice)) : 'N/A'}
                           </td>
                           <td className="px-4 py-4">
                             {hasLocalId ? (
-                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                                product.status === PRODUCT_STATUS.ACTIVE
-                                  ? 'bg-green-100 text-green-700'
-                                  : product.status === PRODUCT_STATUS.INACTIVE
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-gray-100 text-gray-700'
-                              }`}>
+                              <span className="text-xs font-bold uppercase tracking-wider text-black">
                                 {product.status || 'active'}
                               </span>
                             ) : (
-                              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase bg-blue-100 text-blue-700">
+                              <span className="text-xs font-bold uppercase tracking-wider text-black">
                                 Amazon
                               </span>
                             )}
@@ -456,63 +478,59 @@ function Products() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 flex-wrap gap-4">
-                  <div className="text-gray-600 text-sm">
+                <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                  <div className="text-sm text-gray-400">
                     Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                     {Math.min(pagination.page * pagination.limit, pagination.total || products.length)} of{' '}
                     {pagination.total || products.length} products
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                      variant="secondary"
-                      size="small"
+                  <div className="flex gap-2">
+                    <button
                       onClick={() => handlePageChange(pagination.page - 1)}
                       disabled={pagination.page === 1}
+                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
                     >
-                      ← Previous
-                    </Button>
-                    
-                    <div className="flex gap-1 items-center">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        if (
-                          page === 1 ||
-                          page === totalPages ||
-                          (page >= pagination.page - 1 && page <= pagination.page + 1)
-                        ) {
-                          return (
-                            <Button
-                              key={page}
-                              variant={pagination.page === page ? 'primary' : 'secondary'}
-                              size="small"
-                              onClick={() => handlePageChange(page)}
-                              className="min-w-[2.5rem] px-3 py-2"
-                            >
-                              {page}
-                            </Button>
-                          )
-                        } else if (page === pagination.page - 2 || page === pagination.page + 2) {
-                          return <span key={page} className="px-2 text-gray-600 font-medium">...</span>
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= pagination.page - 1 && page <= pagination.page + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 text-xs font-bold tracking-wide uppercase border ${
+                              pagination.page === page
+                                ? 'bg-black text-white border-black'
+                                : 'border-black hover:bg-black hover:text-white'
+                            } transition-colors`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      } else if (page === pagination.page - 2 || page === pagination.page + 2) {
+                          return <span key={page} className="px-2 text-black">...</span>
                         }
                         return null
                       })}
-                    </div>
-                    
-                    <Button
-                      variant="secondary"
-                      size="small"
+                    <button
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page === totalPages}
+                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
                     >
-                      Next →
-                    </Button>
+                      Next
+                    </button>
                   </div>
                 </div>
               )}
             </>
           ) : (
-            <p className="text-center py-12 px-8 text-gray-400 italic">No products found</p>
+            <p className="text-center py-12 text-gray-400 italic">No products found</p>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   )

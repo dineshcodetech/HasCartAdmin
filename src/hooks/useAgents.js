@@ -1,10 +1,9 @@
 /**
  * Custom hook for fetching and managing agents
- * Provides loading, error, and data states with refetch capability
+ * Simplified to match React Native pattern
  */
 import { useState, useEffect, useCallback } from 'react'
-import { agentService } from '../services/api'
-import { getErrorMessage } from '../utils/errorHandler'
+import { apiCall } from '../services/api'
 
 /**
  * Hook to fetch and manage agents list
@@ -19,14 +18,22 @@ export function useAgents() {
     try {
       setLoading(true)
       setError(null)
-      // getAllAgents already returns a filtered array of agents
-      const agentsList = await agentService.getAllAgents()
+      const response = await apiCall('/api/admin/users', { method: 'GET' })
       
-      // Ensure we have an array
-      setAgents(Array.isArray(agentsList) ? agentsList : [])
+      if (response.ok && response.data) {
+        const data = response.data
+        const usersList = Array.isArray(data) 
+          ? data 
+          : data.users || data.data || []
+        // Filter by role="agent"
+        const agentsList = usersList.filter(user => user.role === 'agent')
+        setAgents(agentsList)
+      } else {
+        setError(response.data?.message || 'Failed to load agents')
+        setAgents([])
+      }
     } catch (err) {
-      const errorMessage = getErrorMessage(err) || 'Failed to load agents'
-      setError(errorMessage)
+      setError(err.message || 'Failed to load agents')
       setAgents([])
     } finally {
       setLoading(false)
