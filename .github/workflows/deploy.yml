@@ -1,0 +1,55 @@
+name: Deploy Frontend to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering in GitHub UI
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout the code from this repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js environment
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a standard LTS version
+
+      # Step 3: Install dependencies and build the Vite project locally within GitHub Actions
+      - name: Install dependencies and build
+        run: |
+          npm install
+          npm run build
+
+      # Step 4: Configure SSH keys for accessing the EC2 instance
+      - name: Configure SSH for EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      # Step 5: Sync the built 'dist' folder to the EC2 instance using rsync
+      - name: Deploy built files to EC2 via rsync
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            ./dist/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/HasCartAdmin/dist/
+
+      # Step 6: Restart Nginx/Sync files via SSH
+      - name: Post-deployment actions on EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+            # Optional: If you are using Nginx, you might need to restart it
+            # sudo systemctl restart nginx
+            
+            # Change directory into the project folder for verification if needed
+            cd /home/ubuntu/HasCartAdmin
+            echo "Deployment finished. Files synced to dist/ folder."
+          EOF
