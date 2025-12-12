@@ -38,55 +38,69 @@ export function useProducts(initialFilters = {}) {
     try {
       setLoading(true)
       setError(null)
-      
+
       // Build query string - matches React Native pattern
       const queryParams = new URLSearchParams()
       const keywords = filters.search || filters.keywords || 'all'
       queryParams.append('keywords', keywords)
-      queryParams.append('itemCount', pagination.limit)
+      queryParams.append('limit', pagination.limit)
       queryParams.append('page', pagination.page)
-      
+
       if (filters.searchIndex || filters.category) {
         queryParams.append('searchIndex', filters.searchIndex || filters.category)
       }
       if (filters.brand) queryParams.append('brand', filters.brand)
       if (filters.minPrice) queryParams.append('minPrice', filters.minPrice)
       if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice)
-      
+
       const response = await apiCall(`/api/admin/products?${queryParams.toString()}`, {
         method: 'GET',
       })
-      
+
       // Handle response - simplified pattern
       let productsData = []
       let totalCount = 0
-      
+      let totalPages = 1
+
       if (response.ok && response.data) {
         const data = response.data
-        
-        // Handle different response formats
+
+        // Handle the admin products endpoint response format
+        // Expected format: { success: true, pagination: {...}, data: [...], validated: true }
         if (data.success) {
-          if (data.data && Array.isArray(data.data)) {
+          // Direct data array from admin endpoint
+          if (Array.isArray(data.data)) {
             productsData = data.data
-            totalCount = data.pagination?.total || data.data.length
+            // Use pagination from response if available
+            if (data.pagination) {
+              totalCount = data.pagination.total || data.data.length
+              totalPages = data.pagination.pages || data.pagination.totalPages || Math.ceil(totalCount / pagination.limit)
+            } else {
+              totalCount = data.data.length
+              totalPages = 1
+            }
           } else if (data.data?.SearchResult?.Items) {
+            // Nested Amazon API response format
             productsData = data.data.SearchResult.Items
             totalCount = data.data.SearchResult.TotalResultCount || productsData.length
+            totalPages = Math.ceil(totalCount / pagination.limit)
           }
         } else if (Array.isArray(data)) {
           productsData = data
           totalCount = data.length
+          totalPages = 1
         } else if (data.data && Array.isArray(data.data)) {
           productsData = data.data
           totalCount = data.total || data.data.length
+          totalPages = Math.ceil(totalCount / pagination.limit)
         }
       }
-      
+
       setProducts(productsData)
       setPagination(prev => ({
         ...prev,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / prev.limit) || 1,
+        totalPages: totalPages || 1,
       }))
     } catch (err) {
       setError(err.message || 'Failed to load products')

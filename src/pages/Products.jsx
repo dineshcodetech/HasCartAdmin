@@ -7,6 +7,7 @@ import { useProducts } from '../hooks'
 import { formatDate, formatCurrency } from '../utils/formatters'
 import { PRODUCT_STATUS, PRODUCT_CONDITION, AMAZON_SEARCH_INDEX } from '../constants'
 import { apiCall } from '../services/api'
+import Pagination from '../components/ui/Pagination'
 
 function Products() {
   const { products, loading, error, pagination, filters, updateFilters, updatePagination, refetch } = useProducts()
@@ -32,11 +33,6 @@ function Products() {
     }
   }, [operationError])
 
-  const handlePageChange = (page) => {
-    updatePagination({ page })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   const handleFilterChange = (key, value) => {
     updateFilters({ [key]: value })
   }
@@ -46,7 +42,7 @@ function Products() {
   }
 
   const toggleProductSelection = (productId) => {
-    setSelectedProducts(prev => 
+    setSelectedProducts(prev =>
       prev.includes(productId)
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
@@ -166,8 +162,6 @@ function Products() {
       sort: '-createdAt',
     })
   }
-
-  const totalPages = pagination.totalPages || Math.ceil((pagination.total || products.length) / pagination.limit)
 
   return (
     <div className="p-8 bg-white min-h-screen">
@@ -361,7 +355,7 @@ function Products() {
           <h2 className="text-xl font-light tracking-wide text-black mb-6">
             All Products ({pagination.total || products.length})
           </h2>
-          
+
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="text-black text-sm tracking-wide">Loading...</div>
@@ -393,38 +387,37 @@ function Products() {
                       // Amazon products have structure: { ASIN, DetailPageURL, Images, ItemInfo, Offers, CustomerReviews, ... }
                       const productId = product._id || product.id || product.ASIN || product.asin || `amazon-${index}`
                       const productAsin = product.ASIN || product.asin || 'N/A'
-                      
+
                       // Extract title from ItemInfo.Title.DisplayValue (Amazon API format)
-                      const productTitle = product.ItemInfo?.Title?.DisplayValue || 
-                                         product.title || 
-                                         product.Title?.DisplayValue ||
-                                         product.Title ||
-                                         'N/A'
-                      
+                      const productTitle = product.ItemInfo?.Title?.DisplayValue ||
+                        product.title ||
+                        product.Title?.DisplayValue ||
+                        product.Title ||
+                        'N/A'
+
                       // Extract image from Images.Primary.Large.URL or Medium.URL (Amazon API format)
-                      const productImage = product.Images?.Primary?.Large?.URL || 
-                                         product.Images?.Primary?.Medium?.URL ||
-                                         product.Images?.Primary?.Small?.URL ||
-                                         product.imageUrl || 
-                                         product.image || 
-                                         null
-                      
+                      const productImage = product.Images?.Primary?.Large?.URL ||
+                        product.Images?.Primary?.Medium?.URL ||
+                        product.Images?.Primary?.Small?.URL ||
+                        product.imageUrl ||
+                        product.image ||
+                        null
+
                       // Extract price from Offers.Listings[0].Price (Amazon API format)
-                      const productPrice = product.Offers?.Listings?.[0]?.Price?.DisplayAmount || 
-                                        product.Offers?.Listings?.[0]?.Price?.Amount ||
-                                        product.Price?.DisplayAmount || 
-                                        product.Price?.Amount || 
-                                        product.price || 
-                                        null
+                      const productPrice = product.Offers?.Listings?.[0]?.Price?.DisplayAmount ||
+                        product.Offers?.Listings?.[0]?.Price?.Amount ||
+                        product.Price?.DisplayAmount ||
+                        product.Price?.Amount ||
+                        product.price ||
+                        null
                       const isSelected = selectedProducts.includes(productId)
                       const hasLocalId = product._id || product.id
-                      
+
                       return (
-                        <tr 
-                          key={productId} 
-                          className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-                            isSelected ? 'bg-gray-100' : ''
-                          }`}
+                        <tr
+                          key={productId}
+                          className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-gray-100' : ''
+                            }`}
                         >
                           <td className="px-4 py-4">
                             <input
@@ -437,9 +430,9 @@ function Products() {
                           </td>
                           <td className="px-4 py-4">
                             {productImage ? (
-                              <img 
-                                src={productImage} 
-                                alt={productTitle} 
+                              <img
+                                src={productImage}
+                                alt={productTitle}
                                 className="w-12 h-12 object-cover"
                                 onError={(e) => {
                                   e.target.style.display = 'none'
@@ -476,56 +469,18 @@ function Products() {
                 </table>
               </div>
 
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-                  <div className="text-sm text-gray-400">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-                    {Math.min(pagination.page * pagination.limit, pagination.total || products.length)} of{' '}
-                    {pagination.total || products.length} products
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page === 1}
-                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
-                    >
-                      Previous
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                      if (
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= pagination.page - 1 && page <= pagination.page + 1)
-                      ) {
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`px-4 py-2 text-xs font-bold tracking-wide uppercase border ${
-                              pagination.page === page
-                                ? 'bg-black text-white border-black'
-                                : 'border-black hover:bg-black hover:text-white'
-                            } transition-colors`}
-                          >
-                            {page}
-                          </button>
-                        )
-                      } else if (page === pagination.page - 2 || page === pagination.page + 2) {
-                          return <span key={page} className="px-2 text-black">...</span>
-                        }
-                        return null
-                      })}
-                    <button
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={pagination.page === totalPages}
-                      className="px-4 py-2 text-xs font-bold tracking-wide uppercase border border-black disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Pagination */}
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.total}
+                itemsPerPage={pagination.limit}
+                onPageChange={(page) => {
+                  updatePagination({ page })
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                itemName="products"
+              />
             </>
           ) : (
             <p className="text-center py-12 text-gray-400 italic">No products found</p>

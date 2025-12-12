@@ -10,6 +10,8 @@ export const ROUTES = {
   USERS: '/users',
   AGENTS: '/agents',
   PRODUCTS: '/products',
+  CATEGORIES: '/categories',
+  ANALYTICS: '/analytics',
   ROOT: '/',
 }
 
@@ -21,11 +23,11 @@ export const STORAGE_KEYS = {
 export const API_ENDPOINTS = {
   ADMIN_LOGIN: '/api/admin/login',
   ADMIN_DASHBOARD: '/api/admin/dashboard',
-  ADMIN_USERS: '/api/admin/users', // Use this to get all users (including agents, admins, customers)
+  ADMIN_USERS: '/api/admin/users',
   ADMIN_PRODUCTS: '/api/admin/products',
-  USERS: '/api/users', // Use POST /api/users with role="agent" to create agents (or any user)
-  // Note: There is NO /api/agents or /api/admin/agents endpoint.
-  // Agents are users with role="agent". Use /api/users for creation and /api/admin/users for listing.
+  ADMIN_CATEGORIES: '/api/admin/categories',
+  ADMIN_ANALYTICS_CLICKS: '/api/admin/analytics/clicks',
+  USERS: '/api/users',
 }
 
 export const HTTP_STATUS = {
@@ -104,6 +106,16 @@ export const MENU_ITEMS = [
     path: ROUTES.PRODUCTS,
     label: 'Products',
     icon: '📦',
+  },
+  {
+    path: ROUTES.CATEGORIES,
+    label: 'Categories',
+    icon: '📁',
+  },
+  {
+    path: ROUTES.ANALYTICS,
+    label: 'Analytics',
+    icon: '📈',
   },
 ]
 

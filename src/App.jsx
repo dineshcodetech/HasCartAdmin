@@ -11,6 +11,8 @@ import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Agents from './pages/Agents'
 import Products from './pages/Products'
+import Categories from './pages/Categories'
+import Analytics from './pages/Analytics'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
@@ -24,9 +26,9 @@ function AppRoutes() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen w-screen bg-gray-50">
-        <LoadingSpinner 
-          size="large" 
-          message="Initializing application..." 
+        <LoadingSpinner
+          size="large"
+          message="Initializing application..."
         />
       </div>
     )
@@ -57,6 +59,8 @@ function AppRoutes() {
         <Route path="users" element={<Users />} />
         <Route path="agents" element={<Agents />} />
         <Route path="products" element={<Products />} />
+        <Route path="categories" element={<Categories />} />
+        <Route path="analytics" element={<Analytics />} />
       </Route>
     </Routes>
   )
