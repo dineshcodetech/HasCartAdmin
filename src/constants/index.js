@@ -11,6 +11,7 @@ export const ROUTES = {
   AGENTS: '/agents',
   PRODUCTS: '/products',
   CATEGORIES: '/categories',
+  BANNERS: '/banners',
   ANALYTICS: '/analytics',
   ROOT: '/',
 }
@@ -26,6 +27,7 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: '/api/admin/users',
   ADMIN_PRODUCTS: '/api/admin/products',
   ADMIN_CATEGORIES: '/api/admin/categories',
+  ADMIN_BANNERS: '/api/banners',
   ADMIN_ANALYTICS_CLICKS: '/api/admin/analytics/clicks',
   USERS: '/api/users',
 }
@@ -111,6 +113,11 @@ export const MENU_ITEMS = [
     path: ROUTES.CATEGORIES,
     label: 'Categories',
     icon: '📁',
+  },
+  {
+    path: ROUTES.BANNERS,
+    label: 'Banners',
+    icon: '🖼️',
   },
   {
     path: ROUTES.ANALYTICS,

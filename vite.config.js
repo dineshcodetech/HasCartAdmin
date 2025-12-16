@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL || 'http://localhost:3000',
+          target: env.VITE_API_BASE_URL || 'http://localhost:3001',
           changeOrigin: true,
           // Don't rewrite - backend expects /api/admin/* paths
         }

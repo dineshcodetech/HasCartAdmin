@@ -12,6 +12,7 @@ import Users from './pages/Users'
 import Agents from './pages/Agents'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
+import Banners from './pages/Banners'
 import Analytics from './pages/Analytics'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="agents" element={<Agents />} />
         <Route path="products" element={<Products />} />
         <Route path="categories" element={<Categories />} />
+        <Route path="banners" element={<Banners />} />
         <Route path="analytics" element={<Analytics />} />
       </Route>
     </Routes>

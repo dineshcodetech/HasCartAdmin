@@ -15,6 +15,7 @@ const AuthContext = createContext(null)
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -24,20 +25,23 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const token = getStorageString(STORAGE_KEYS.ADMIN_TOKEN)
+        const storedToken = getStorageString(STORAGE_KEYS.ADMIN_TOKEN)
         const userData = getStorageItem(STORAGE_KEYS.ADMIN_USER)
-        
-        if (token && userData) {
+
+        if (storedToken && userData) {
           setUser(userData)
+          setToken(storedToken)
           setIsAuthenticated(true)
         } else {
           setIsAuthenticated(false)
           setUser(null)
+          setToken(null)
         }
       } catch (error) {
         console.error('Error checking auth status:', error)
         setIsAuthenticated(false)
         setUser(null)
+        setToken(null)
       } finally {
         setLoading(false)
       }
@@ -58,17 +62,18 @@ export function AuthProvider({ children }) {
 
       if (response.ok && response.data) {
         const data = response.data
-        const token = data.token || data.data?.token
+        const newToken = data.token || data.data?.token
         const admin = data.admin || data.user || data.data?.admin || data.data?.user || data.data
 
-        if (token) {
-          setStorageString(STORAGE_KEYS.ADMIN_TOKEN, token)
+        if (newToken) {
+          setStorageString(STORAGE_KEYS.ADMIN_TOKEN, newToken)
+          setToken(newToken)
           if (admin) {
             setStorageItem(STORAGE_KEYS.ADMIN_USER, admin)
             setUser(admin)
           }
           setIsAuthenticated(true)
-          return { token, admin }
+          return { token: newToken, admin }
         } else {
           throw new Error(data.message || 'No token received')
         }
@@ -80,6 +85,7 @@ export function AuthProvider({ children }) {
       removeStorageItem(STORAGE_KEYS.ADMIN_USER)
       setIsAuthenticated(false)
       setUser(null)
+      setToken(null)
       throw error
     }
   }
@@ -89,6 +95,7 @@ export function AuthProvider({ children }) {
    */
   const logout = () => {
     setUser(null)
+    setToken(null)
     setIsAuthenticated(false)
     removeStorageItem(STORAGE_KEYS.ADMIN_TOKEN)
     removeStorageItem(STORAGE_KEYS.ADMIN_USER)
@@ -96,6 +103,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    token, // Expose token
     isAuthenticated,
     login,
     logout,
