@@ -14,14 +14,14 @@ export default function Button({
   ...props
 }) {
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium border-none rounded-md cursor-pointer transition-all duration-200 font-inherit outline-none focus:outline-2 focus:outline-offset-2 focus:outline-blue-500'
-  
+
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400',
+    primary: 'bg-primary text-white hover:bg-blue-900 disabled:bg-blue-300',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 disabled:bg-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400',
-    success: 'bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400',
+    success: 'bg-secondary text-white hover:bg-green-700 disabled:bg-green-400',
   }
-  
+
   const sizeClasses = {
     small: 'px-3 py-1.5 text-xs',
     medium: 'px-5 py-2.5 text-sm',

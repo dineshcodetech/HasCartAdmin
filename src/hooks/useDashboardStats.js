@@ -12,9 +12,14 @@ import { apiCall } from '../services/api'
 export function useDashboardStats() {
   const [stats, setStats] = useState({
     totalUsers: 0,
+    totalAdmins: 0,
+    totalAgents: 0,
+    totalCustomers: 0,
     totalProducts: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
+    totalCategories: 0,
+    totalClicks: 0,
+    recentUsers: [],
+    recentClicks: [],
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -24,14 +29,19 @@ export function useDashboardStats() {
       setLoading(true)
       setError(null)
       const response = await apiCall('/api/admin/dashboard', { method: 'GET' })
-      
-      if (response.ok && response.data) {
-        const data = response.data
+
+      if (response.ok && response.data && response.data.success) {
+        const data = response.data.data
         setStats({
           totalUsers: data.totalUsers || 0,
+          totalAdmins: data.totalAdmins || 0,
+          totalAgents: data.totalAgents || 0,
+          totalCustomers: data.totalCustomers || 0,
           totalProducts: data.totalProducts || 0,
-          totalOrders: data.totalOrders || 0,
-          totalRevenue: data.totalRevenue || 0,
+          totalCategories: data.totalCategories || 0,
+          totalClicks: data.totalClicks || 0,
+          recentUsers: data.recentUsers || [],
+          recentClicks: data.recentClicks || [],
         })
       } else {
         setError(response.data?.message || 'Failed to load dashboard statistics')

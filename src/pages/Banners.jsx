@@ -123,19 +123,22 @@ export default function Banners() {
     if (loading && !banners.length) return <LoadingSpinner />;
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold font-display text-gray-900">Banners Configuration</h1>
+        <div className="p-8 min-h-screen">
+            <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-wide text-primary mb-2">Banners.</h1>
+                    <p className="text-xs text-gray-400 tracking-widest uppercase">Configuration</p>
+                </div>
                 <button
                     onClick={() => {
                         if (showForm && editingId) {
-                            resetForm(); // Cancel edit
+                            resetForm();
                         } else {
                             setShowForm(!showForm);
-                            if (!showForm) resetForm(); // Reset if opening new
+                            if (!showForm) resetForm();
                         }
                     }}
-                    className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                    className="px-6 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-primary text-primary hover:opacity-70 transition-all active:scale-95"
                 >
                     {showForm ? 'Cancel' : 'Add New Banner'}
                 </button>
@@ -143,60 +146,60 @@ export default function Banners() {
 
             {showForm && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 max-w-2xl">
-                    <h2 className="text-lg font-bold mb-4">{editingId ? 'Edit Banner' : 'Add New Banner'}</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <h2 className="text-sm font-bold tracking-wider uppercase text-gray-500 mb-6">
+                        {editingId ? 'Edit Banner' : 'Add New Banner'}
+                    </h2>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL *</label>
+                            <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Image URL *</label>
                             <input
                                 type="text"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                                 value={formData.imageUrl}
                                 onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                                 placeholder="https://example.com/image.jpg"
                                 required
                             />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Paste the direct image address (ending in .jpg, .png, etc.), NOT a website link.
-                                <br />
-                                Tip: Right-click the image on the site and select "Copy Image Address".
+                            <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-tight">
+                                Paste the direct image address (ending in .jpg, .png, etc.)
                             </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title (Optional)</label>
+                                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Title (Optional)</label>
                                 <input
                                     type="text"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                    className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    placeholder="Summer Sale"
+                                    placeholder="Banner Title"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Display Order</label>
                                 <input
                                     type="number"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                    className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                                     value={formData.order}
                                     onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">External Link / Screen path (Optional)</label>
+                            <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">External Link / Screen path (Optional)</label>
                             <input
                                 type="text"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                                 value={formData.link}
                                 onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                                 placeholder="/products or https://..."
                             />
                         </div>
-                        <div className="flex justify-end pt-2">
+                        <div className="flex justify-end pt-4">
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 font-medium"
+                                className="bg-secondary text-white px-8 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 font-bold uppercase tracking-widest text-xs shadow-md active:scale-95 transition-all"
                             >
                                 {submitting ? 'Saving...' : (editingId ? 'Update Banner' : 'Create Banner')}
                             </button>
@@ -205,52 +208,51 @@ export default function Banners() {
                 </div>
             )}
 
-            {/* Banners Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {banners.map((banner) => (
-                    <div key={banner._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group">
-                        <div className="relative aspect-video bg-gray-100">
+                    <div key={banner._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-all">
+                        <div className="relative aspect-video bg-gray-50">
                             <img
                                 src={banner.imageUrl}
                                 alt={banner.title || 'Banner'}
                                 className="w-full h-full object-cover"
                                 onError={(e) => e.target.src = 'https://via.placeholder.com/300x150?text=Invalid+Image'}
                             />
-                            <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                                 <button
                                     onClick={() => handleEdit(banner)}
-                                    className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 shadow-sm"
+                                    className="bg-white text-primary p-3 rounded-full hover:bg-secondary hover:text-white shadow-lg transition-all active:scale-90"
                                     title="Edit"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
                                 <button
                                     onClick={() => handleDelete(banner._id)}
-                                    className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-sm"
+                                    className="bg-white text-red-500 p-3 rounded-full hover:bg-red-500 hover:text-white shadow-lg transition-all active:scale-90"
                                     title="Delete"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
                             </div>
-                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-sm">
                                 Order: {banner.order}
                             </div>
                         </div>
-                        <div className="p-4">
-                            <h3 className="font-bold text-gray-900 truncate">{banner.title || 'Untitled Banner'}</h3>
-                            <p className="text-sm text-gray-500 truncate mt-1">{banner.link || 'No link'}</p>
+                        <div className="p-5">
+                            <h3 className="font-bold text-primary truncate tracking-wide">{banner.title || 'Untitled Banner'}</h3>
+                            <p className="text-xs text-gray-400 truncate mt-1 tracking-tight">{banner.link || 'No external link'}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
             {banners.length === 0 && !loading && (
-                <div className="text-center py-12 text-gray-500">
-                    No banners configured. Click "Add New Banner" to start.
+                <div className="text-center py-24 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+                    <p className="text-sm text-gray-400 italic">No banners configured yet.</p>
                 </div>
             )}
         </div>

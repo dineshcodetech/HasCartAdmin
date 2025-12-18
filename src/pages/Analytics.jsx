@@ -65,12 +65,12 @@ function Analytics() {
     }
 
     return (
-        <div className="p-8 bg-white min-h-screen">
+        <div className="p-8 min-h-screen">
             {/* Header */}
             <div className="mb-12">
                 <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-3xl font-light tracking-wide text-black mb-2">
+                        <h1 className="text-3xl font-bold tracking-wide text-primary mb-2">
                             Analytics.
                         </h1>
                         <p className="text-xs text-gray-400 tracking-widest uppercase">
@@ -80,7 +80,7 @@ function Analytics() {
                     <button
                         onClick={fetchClicks}
                         disabled={loading}
-                        className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-black hover:opacity-70 disabled:opacity-40"
+                        className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-primary text-primary hover:opacity-70 disabled:opacity-40"
                     >
                         Refresh
                     </button>
@@ -96,7 +96,7 @@ function Analytics() {
                         <select
                             value={filters.category}
                             onChange={(e) => updateFilter('category', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-black min-w-[180px]"
+                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold min-w-[180px]"
                         >
                             <option value="">All Categories</option>
                             {Object.values(AMAZON_SEARCH_INDEX).map((cat) => (
@@ -111,7 +111,7 @@ function Analytics() {
                             type="date"
                             value={filters.startDate}
                             onChange={(e) => updateFilter('startDate', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-black"
+                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                         />
                     </div>
 
@@ -121,7 +121,7 @@ function Analytics() {
                             type="date"
                             value={filters.endDate}
                             onChange={(e) => updateFilter('endDate', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-black"
+                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
                         />
                     </div>
                 </div>
@@ -130,42 +130,44 @@ function Analytics() {
             {/* Error */}
             {error && (
                 <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
-                    <p className="text-sm text-black">{error}</p>
+                    <p className="text-sm text-primary font-bold">{error}</p>
                 </div>
             )}
 
             {/* Table */}
-            <div className="border-t border-gray-200 pt-8">
-                <h2 className="text-xl font-light tracking-wide text-black mb-6">
-                    Product Views ({pagination.total})
-                </h2>
+            <h2 className="text-xl font-bold tracking-wide text-primary mb-6">
+                Product Views ({pagination.total})
+            </h2>
 
-                {loading ? (
-                    <div className="py-12 text-center text-gray-400 text-sm">Loading...</div>
-                ) : clicks.length > 0 ? (
+            {loading ? (
+                <div className="py-20 flex justify-center items-center">
+                    <div className="text-primary text-sm tracking-wide font-bold animate-pulse">Loading...</div>
+                </div>
+            ) : clicks.length > 0 ? (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
-                            <thead className="border-b border-gray-200">
-                                <tr>
-                                    <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Product</th>
-                                    <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Category</th>
-                                    <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">User</th>
-                                    <th className="px-4 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">Referred By (Agent)</th>
-                                    <th className="px-4 py-4 text-right text-xs font-bold text-black uppercase tracking-wider">Time</th>
+                            <thead>
+                                <tr className="bg-gray-50/50">
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Product</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Category</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">User</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Referred By</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Time</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {clicks.map((click) => (
                                     <tr key={click._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-4">
-                                            <p className="font-medium text-sm truncate max-w-xs" title={click.productName}>
+                                            <p className="font-bold text-sm truncate max-w-xs text-primary" title={click.productName}>
                                                 {click.productName}
                                             </p>
                                             <p className="text-xs text-gray-400">ASIN: {click.asin}</p>
                                         </td>
-                                        <td className="px-4 py-4 text-sm">{click.category}</td>
+                                        <td className="px-4 py-4 text-sm text-primary font-medium">{click.category}</td>
                                         <td className="px-4 py-4">
-                                            <p className="text-sm font-medium">{click.user?.name || 'Unknown'}</p>
+                                            <p className="text-sm font-bold text-primary">{click.user?.name || 'Unknown'}</p>
                                             <p className="text-xs text-gray-400">{click.user?.email}</p>
                                         </td>
                                         <td className="px-4 py-4">
@@ -185,34 +187,34 @@ function Analytics() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
 
-                        {/* Pagination */}
-                        <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-100">
-                            <p className="text-xs text-gray-400">
-                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} records)
-                            </p>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => updatePage(pagination.page - 1)}
-                                    disabled={pagination.page <= 1}
-                                    className="px-4 py-2 text-xs font-bold uppercase border border-gray-200 disabled:opacity-30 hover:border-black transition-colors"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={() => updatePage(pagination.page + 1)}
-                                    disabled={pagination.page >= pagination.totalPages}
-                                    className="px-4 py-2 text-xs font-bold uppercase border border-gray-200 disabled:opacity-30 hover:border-black transition-colors"
-                                >
-                                    Next
-                                </button>
-                            </div>
+                    {/* Pagination */}
+                    <div className="flex justify-between items-center px-6 py-6 border-t border-gray-100">
+                        <p className="text-xs text-gray-400">
+                            Page {pagination.page} of {pagination.totalPages} ({pagination.total} records)
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => updatePage(pagination.page - 1)}
+                                disabled={pagination.page <= 1}
+                                className="px-4 py-2 text-xs font-bold uppercase border border-primary text-primary disabled:opacity-30 hover:bg-primary hover:text-white transition-colors"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => updatePage(pagination.page + 1)}
+                                disabled={pagination.page >= pagination.totalPages}
+                                className="px-4 py-2 text-xs font-bold uppercase border border-primary text-primary disabled:opacity-30 hover:bg-primary hover:text-white transition-colors"
+                            >
+                                Next
+                            </button>
                         </div>
                     </div>
-                ) : (
-                    <p className="text-center py-12 text-gray-400 italic">No click data found for the selected filters.</p>
-                )}
-            </div>
+                </div>
+            ) : (
+                <p className="text-center py-12 text-gray-400 italic">No click data found for the selected filters.</p>
+            )}
         </div>
     )
 }

@@ -81,12 +81,12 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-8">
       <div className="w-full max-w-md">
-        {/* Minimalist Logo Area */}
+        {/* Brand Logo Area */}
         <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-black rounded-sm flex items-center justify-center mx-auto mb-6">
-            <span className="text-white text-2xl">🛒</span>
+          <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
+            <img src="/logo.png" alt="HasCart Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-3xl font-light tracking-[0.2em] text-black mb-2">
+          <h1 className="text-3xl font-bold tracking-[0.2em] text-primary mb-2">
             HASCART
           </h1>
           <p className="text-xs text-gray-400 mt-2 tracking-widest uppercase">
@@ -100,7 +100,7 @@ function Login() {
             <input
               type="email"
               placeholder="EMAIL ADDRESS"
-              className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide outline-none focus:border-black transition-colors"
+              className="w-full border-b border-gray-200 py-3 text-base text-primary font-medium tracking-wide outline-none focus:border-secondary transition-colors"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               autoCapitalize="none"
@@ -111,7 +111,7 @@ function Login() {
             <input
               type="password"
               placeholder="PASSWORD"
-              className="w-full border-b border-gray-200 py-3 text-base text-black font-medium tracking-wide outline-none focus:border-black transition-colors"
+              className="w-full border-b border-gray-200 py-3 text-base text-primary font-medium tracking-wide outline-none focus:border-secondary transition-colors"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
             />
@@ -123,11 +123,11 @@ function Login() {
 
           <button
             type="submit"
-            className="w-full bg-black py-5 mt-8 text-white text-sm font-bold tracking-[0.15em] uppercase hover:bg-gray-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-primary py-5 mt-8 text-white text-sm font-bold tracking-[0.15em] uppercase hover:opacity-90 shadow-xl shadow-primary/20 active:transform active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed rounded-lg"
             disabled={loading}
           >
             {loading ? (
-              <span className="inline-block animate-spin">⏳</span>
+              <span className="inline-block animate-spin text-lg">⏳</span>
             ) : (
               'Enter'
             )}

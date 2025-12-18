@@ -18,11 +18,16 @@ function Sidebar() {
   }
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-light tracking-wide text-black mb-2">HASCART</h2>
+    <div className="fixed left-0 top-0 h-full w-64 bg-primary flex flex-col shadow-xl">
+      <div className="p-6 border-b border-white/10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1.5 shadow-lg">
+            <img src="/logo.png" alt="HasCart Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="text-xl font-bold tracking-wide text-white">HASCART</h2>
+        </div>
         {user && (
-          <p className="text-xs text-gray-400 tracking-widest uppercase">{user.email}</p>
+          <p className="text-[10px] text-gray-300 tracking-widest uppercase truncate opacity-80">{user.email}</p>
         )}
       </div>
 
@@ -34,11 +39,10 @@ function Sidebar() {
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors border-b ${
-                    isActive
-                      ? 'bg-black text-white border-black font-bold'
-                      : 'text-black border-transparent hover:border-gray-200'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${isActive
+                    ? 'bg-white/10 text-secondary border-l-4 border-secondary font-bold pl-3'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
+                    }`}
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <span className="text-sm uppercase tracking-wider">{item.label}</span>
@@ -49,10 +53,10 @@ function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-white/10">
         <button
           onClick={handleLogout}
-          className="w-full px-4 py-3 text-xs font-bold tracking-[0.15em] uppercase border border-black hover:bg-black hover:text-white transition-colors"
+          className="w-full px-4 py-3 text-xs font-bold tracking-[0.15em] uppercase border border-white/20 text-white hover:bg-white hover:text-primary transition-all rounded-lg"
         >
           Logout
         </button>
