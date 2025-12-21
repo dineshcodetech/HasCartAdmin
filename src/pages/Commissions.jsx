@@ -23,6 +23,7 @@ function Commissions() {
         startDate: '',
         endDate: ''
     })
+    const [selectedWithdrawal, setSelectedWithdrawal] = useState(null)
 
     const fetchData = useCallback(async () => {
         try {
@@ -51,17 +52,17 @@ function Commissions() {
                     // Fetch all withdrawals and filter client-side
                     const wdRes = await apiCall(`/api/admin/withdrawals?status=${filters.status || ''}${dateParams}&limit=1000`)
                     if (wdRes.ok) {
-                        let filteredWithdrawals = (wdRes.data.data.withdrawals || []).filter(wd => 
+                        let filteredWithdrawals = (wdRes.data.data.withdrawals || []).filter(wd =>
                             wd.user && wd.user._id === filters.userId
                         )
                         setAllWithdrawals(filteredWithdrawals)
-                        
+
                         // Client-side pagination
                         const limit = 20
                         const startIndex = (page - 1) * limit
                         const endIndex = startIndex + limit
                         const paginatedWithdrawals = filteredWithdrawals.slice(startIndex, endIndex)
-                        
+
                         setWithdrawals(paginatedWithdrawals)
                         setWdPagination({
                             page: page,
@@ -88,7 +89,7 @@ function Commissions() {
                     if (filters.userId) clicksQuery.append('agentId', filters.userId)
                     if (filters.startDate) clicksQuery.append('startDate', filters.startDate)
                     if (filters.endDate) clicksQuery.append('endDate', filters.endDate)
-                    
+
                     const clicksRes = await apiCall(`/api/admin/analytics/clicks?${clicksQuery.toString()}`)
                     if (clicksRes.ok && clicksRes.data?.success) {
                         // Filter by status on client side
@@ -100,13 +101,13 @@ function Commissions() {
                             return true
                         })
                         setAllClicks(filteredClicks)
-                        
+
                         // Client-side pagination
                         const limit = 20
                         const startIndex = (page - 1) * limit
                         const endIndex = startIndex + limit
                         const paginatedClicks = filteredClicks.slice(startIndex, endIndex)
-                        
+
                         setProductClicks(paginatedClicks)
                         setClicksPagination({
                             page: page,
@@ -124,7 +125,7 @@ function Commissions() {
                     if (filters.userId) clicksQuery.append('agentId', filters.userId)
                     if (filters.startDate) clicksQuery.append('startDate', filters.startDate)
                     if (filters.endDate) clicksQuery.append('endDate', filters.endDate)
-                    
+
                     const clicksRes = await apiCall(`/api/admin/analytics/clicks?${clicksQuery.toString()}`)
                     if (clicksRes.ok && clicksRes.data?.success) {
                         setProductClicks(clicksRes.data.data.clicks || [])
@@ -228,7 +229,15 @@ function Commissions() {
     return (
         <div className="p-8 min-h-screen bg-[#fafafa]">
             <div className="mb-12">
-                <h1 className="text-4xl font-bold tracking-tight text-primary mb-2">Commissions<span className="text-secondary">.</span></h1>
+                <div className="flex justify-between items-center mb-2">
+                    <h1 className="text-4xl font-bold tracking-tight text-primary">Commissions<span className="text-secondary">.</span></h1>
+                    <button
+                        onClick={fetchData}
+                        className="px-6 py-2 text-[10px] font-black uppercase tracking-widest border border-gray-100 bg-white rounded-full hover:bg-primary hover:text-white transition-all active:scale-95"
+                    >
+                        Refresh Data
+                    </button>
+                </div>
                 <p className="text-xs text-gray-400 tracking-widest uppercase font-medium">Financial Monitoring & Payouts</p>
             </div>
 
@@ -244,16 +253,16 @@ function Commissions() {
                     <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-black">Under Review</p>
                     <p className="text-3xl font-black text-orange-600">
                         {activeTab === 'transactions' ? transactions.filter(tx => tx.status === 'pending').length :
-                         activeTab === 'clicks' ? productClicks.filter(c => c.commissionStatus === 'pending' || c.commissionStatus === 'none').length :
-                         withdrawals.filter(w => w.status === 'pending').length}
+                            activeTab === 'clicks' ? productClicks.filter(c => c.commissionStatus === 'pending' || c.commissionStatus === 'none').length :
+                                withdrawals.filter(w => w.status === 'pending').length}
                     </p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-black">Ledger Entries</p>
                     <p className="text-3xl font-black text-primary">
-                        {activeTab === 'transactions' ? transactions.length : 
-                         activeTab === 'clicks' ? productClicks.length : 
-                         withdrawals.length}
+                        {activeTab === 'transactions' ? transactions.length :
+                            activeTab === 'clicks' ? productClicks.length :
+                                withdrawals.length}
                     </p>
                 </div>
             </div>
@@ -378,16 +387,15 @@ function Commissions() {
                                         {formatCurrency(click.commissionAmount || 0)}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${
-                                            click.commissionStatus === 'pending' ? 'bg-orange-50 text-orange-600' : 
-                                            click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' : 
-                                            click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' : 
-                                            'bg-gray-50 text-gray-400'
-                                        }`}>
-                                            {click.commissionStatus === 'pending' ? 'Under Review' : 
-                                             click.commissionStatus === 'completed' ? 'Accepted' : 
-                                             click.commissionStatus === 'failed' ? 'Rejected' : 
-                                             'Ineligible'}
+                                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${click.commissionStatus === 'pending' ? 'bg-orange-50 text-orange-600' :
+                                            click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' :
+                                                click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
+                                                    'bg-gray-50 text-gray-400'
+                                            }`}>
+                                            {click.commissionStatus === 'pending' ? 'Under Review' :
+                                                click.commissionStatus === 'completed' ? 'Accepted' :
+                                                    click.commissionStatus === 'failed' ? 'Rejected' :
+                                                        'Ineligible'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
@@ -512,24 +520,32 @@ function Commissions() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        {wd.status === 'pending' ? (
-                                            <div className="flex gap-2 justify-end">
-                                                <button
-                                                    onClick={() => handleWithdrawalAction(wd._id, 'approved')}
-                                                    className="bg-primary text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-md hover:bg-black active:scale-95 transition-all"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleWithdrawalAction(wd._id, 'rejected')}
-                                                    className="border border-gray-100 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all"
-                                                >
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-gray-300">{formatDate(wd.createdAt)}</span>
-                                        )}
+                                        <div className="flex gap-2 justify-end items-center">
+                                            <button
+                                                onClick={() => setSelectedWithdrawal(wd)}
+                                                className="text-[10px] font-black uppercase tracking-widest text-primary border-b border-primary/20 hover:border-primary transition-all mr-2"
+                                            >
+                                                View
+                                            </button>
+                                            {wd.status === 'pending' ? (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleWithdrawalAction(wd._id, 'approved')}
+                                                        className="bg-primary text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-md hover:bg-black active:scale-95 transition-all"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleWithdrawalAction(wd._id, 'rejected')}
+                                                        className="border border-gray-100 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-gray-300">{formatDate(wd.createdAt)}</span>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -538,23 +554,153 @@ function Commissions() {
                 </div>
             )}
 
+            {/* Withdrawal Details Modal */}
+            {selectedWithdrawal && (
+                <div className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-primary">Withdrawal Details</h3>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-1">Transaction audit</p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedWithdrawal(null)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white transition-colors text-gray-400 hover:text-primary shadow-sm"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            {/* Agent Info Section */}
+                            <div>
+                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Requester Information</label>
+                                <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-primary/20">
+                                        {selectedWithdrawal.user?.name?.charAt(0) || 'A'}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black text-primary">{selectedWithdrawal.user?.name}</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedWithdrawal.user?.referralCode}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payout Details Section */}
+                            <div>
+                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Payout Configuration</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Amount</p>
+                                        <p className="text-lg font-black text-primary">{formatCurrency(selectedWithdrawal.amount)}</p>
+                                    </div>
+                                    <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Method</p>
+                                        <p className="text-lg font-black text-secondary">{selectedWithdrawal.paymentMethod}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payment Details Input by User */}
+                            <div>
+                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">User Provided Details</label>
+                                <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-2xl max-h-[200px] overflow-y-auto custom-scrollbar">
+                                    {selectedWithdrawal.paymentDetails ? (() => {
+                                        let details = selectedWithdrawal.paymentDetails;
+                                        let isObject = typeof details === 'object';
+
+                                        // Attempt to parse if it's a JSON string
+                                        if (!isObject && typeof details === 'string' && (details.startsWith('{') || details.startsWith('['))) {
+                                            try {
+                                                details = JSON.parse(details);
+                                                isObject = true;
+                                            } catch (e) {
+                                                // Not valid JSON, keep as string
+                                            }
+                                        }
+
+                                        if (isObject) {
+                                            return (
+                                                <div className="space-y-3">
+                                                    {Object.entries(details).map(([key, value]) => (
+                                                        <div key={key} className="flex flex-col pb-2 border-b border-secondary/5 last:border-0">
+                                                            <span className="text-[9px] uppercase font-black text-gray-400 mb-0.5">{key.replace(/([A-Z]|_)/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                                                            <span className="text-xs font-bold text-primary break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value || '—')}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        }
+
+                                        return <p className="text-xs font-bold text-primary whitespace-pre-wrap">{details}</p>;
+                                    })() : (
+                                        <p className="text-xs font-bold text-gray-300 italic">No specific details provided by agent.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Admin Notes if any */}
+                            {selectedWithdrawal.adminNotes && (
+                                <div>
+                                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Admin Verification Notes</label>
+                                    <p className="text-xs font-medium text-gray-500 italic p-4 bg-orange-50/50 rounded-xl border border-orange-100">{selectedWithdrawal.adminNotes}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex gap-4">
+                            {selectedWithdrawal.status === 'pending' && (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            handleWithdrawalAction(selectedWithdrawal._id, 'approved');
+                                            setSelectedWithdrawal(null);
+                                        }}
+                                        className="flex-1 bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        Approve Request
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleWithdrawalAction(selectedWithdrawal._id, 'rejected');
+                                            setSelectedWithdrawal(null);
+                                        }}
+                                        className="flex-1 bg-white border border-gray-100 text-red-500 text-[10px] font-black uppercase py-4 rounded-2xl hover:bg-red-50 transition-all"
+                                    >
+                                        Reject
+                                    </button>
+                                </>
+                            )}
+                            {selectedWithdrawal.status !== 'pending' && (
+                                <button
+                                    onClick={() => setSelectedWithdrawal(null)}
+                                    className="w-full bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all"
+                                >
+                                    Dismiss Audit
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-12">
                 <Pagination
                     currentPage={page}
                     totalPages={
-                        activeTab === 'transactions' ? txPagination.totalPages : 
-                        activeTab === 'clicks' ? clicksPagination.totalPages : 
-                        wdPagination.totalPages
+                        activeTab === 'transactions' ? txPagination.totalPages :
+                            activeTab === 'clicks' ? clicksPagination.totalPages :
+                                wdPagination.totalPages
                     }
                     totalItems={
-                        activeTab === 'transactions' ? txPagination.total : 
-                        activeTab === 'clicks' ? clicksPagination.total : 
-                        wdPagination.total
+                        activeTab === 'transactions' ? txPagination.total :
+                            activeTab === 'clicks' ? clicksPagination.total :
+                                wdPagination.total
                     }
                     itemsPerPage={
-                        activeTab === 'transactions' ? txPagination.limit : 
-                        activeTab === 'clicks' ? clicksPagination.limit : 
-                        wdPagination.limit
+                        activeTab === 'transactions' ? txPagination.limit :
+                            activeTab === 'clicks' ? clicksPagination.limit :
+                                wdPagination.limit
                     }
                     onPageChange={(p) => setPage(p)}
                 />
@@ -568,7 +714,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
     // Always show pagination, even if only 1 page (for consistency)
     const displayTotalPages = Math.max(1, totalPages)
     const displayTotalItems = totalItems || 0
-    
+
     return (
         <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="text-[10px] font-black uppercase tracking-widest text-gray-300">

@@ -1,18 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { API_ENDPOINTS } from '../constants';
-import { API_BASE_URL } from '../config';
+import { useBanners } from '../hooks/useBanners';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 export default function Banners() {
     const { token } = useAuth();
-    const [banners, setBanners] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const {
+        banners,
+        loading,
+        error: fetchError,
+        refetch,
+        createBanner,
+        updateBanner,
+        deleteBanner
+    } = useBanners();
 
     // Form State
     const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState(null); // Track which banner is being edited
+    const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
         imageUrl: '',
@@ -21,50 +27,25 @@ export default function Banners() {
         isActive: true
     });
     const [submitting, setSubmitting] = useState(false);
-
-    useEffect(() => {
-        fetchBanners();
-    }, []);
-
-    const fetchBanners = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN_BANNERS}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setBanners(data.data);
-            } else {
-                setError(data.message);
-            }
-        } catch (err) {
-            setError('Failed to fetch banners');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [operationError, setOperationError] = useState(null);
+    const [operationSuccess, setOperationSuccess] = useState(null);
 
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this banner?')) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN_BANNERS}/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                // If we deleted the one being edited, reset form
-                if (editingId === id) {
-                    resetForm();
-                }
-                fetchBanners();
-            } else {
-                alert(data.message);
-            }
-        } catch (err) {
-            alert('Failed to delete banner');
+
+        setSubmitting(true);
+        setOperationError(null);
+
+        const result = await deleteBanner(id);
+
+        if (result.success) {
+            setOperationSuccess('Banner deleted successfully');
+            if (editingId === id) resetForm();
+            setTimeout(() => setOperationSuccess(null), 3000);
+        } else {
+            setOperationError(result.error);
         }
+        setSubmitting(false);
     };
 
     const handleEdit = (banner) => {
@@ -84,176 +65,266 @@ export default function Banners() {
         setShowForm(false);
         setEditingId(null);
         setFormData({ title: '', imageUrl: '', link: '', order: 0, isActive: true });
+        setOperationError(null);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.imageUrl) return alert('Image URL is required');
+        if (!formData.imageUrl) return setOperationError('Image URL is required');
 
         setSubmitting(true);
-        try {
-            const url = editingId
-                ? `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BANNERS}/${editingId}`
-                : `${API_BASE_URL}${API_ENDPOINTS.ADMIN_BANNERS}`;
+        setOperationError(null);
 
-            const method = editingId ? 'PUT' : 'POST';
+        const result = editingId
+            ? await updateBanner(editingId, formData)
+            : await createBanner(formData);
 
-            const res = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-            const data = await res.json();
-            if (data.success) {
-                resetForm();
-                fetchBanners();
-            } else {
-                alert(data.message);
-            }
-        } catch (err) {
-            alert(`Failed to ${editingId ? 'update' : 'create'} banner`);
-        } finally {
-            setSubmitting(false);
+        if (result.success) {
+            setOperationSuccess(`Banner ${editingId ? 'updated' : 'created'} successfully`);
+            resetForm();
+            setTimeout(() => setOperationSuccess(null), 3000);
+        } else {
+            setOperationError(result.error);
         }
+        setSubmitting(false);
     };
-
-    if (loading && !banners.length) return <LoadingSpinner />;
 
     return (
         <div className="p-8 min-h-screen">
             <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
                 <div>
                     <h1 className="text-3xl font-bold tracking-wide text-primary mb-2">Banners.</h1>
-                    <p className="text-xs text-gray-400 tracking-widest uppercase">Configuration</p>
+                    <p className="text-xs text-gray-400 tracking-widest uppercase">Configuration & Visuals</p>
                 </div>
-                <button
-                    onClick={() => {
-                        if (showForm && editingId) {
-                            resetForm();
-                        } else {
-                            setShowForm(!showForm);
-                            if (!showForm) resetForm();
-                        }
-                    }}
-                    className="px-6 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-primary text-primary hover:opacity-70 transition-all active:scale-95"
-                >
-                    {showForm ? 'Cancel' : 'Add New Banner'}
-                </button>
+                <div className="flex gap-4">
+                    <button
+                        onClick={refetch}
+                        className="px-6 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-gray-200 text-gray-500 hover:text-primary transition-all"
+                    >
+                        Refresh
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (showForm) {
+                                resetForm();
+                            } else {
+                                resetForm(); // Ensures clean state
+                                setShowForm(true);
+                            }
+                        }}
+                        className="px-6 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-primary text-primary hover:opacity-70 transition-all active:scale-95"
+                    >
+                        {showForm ? 'Cancel' : 'Add New Banner'}
+                    </button>
+                </div>
             </div>
 
+            {/* Error Messages */}
+            {(fetchError || operationError) && (
+                <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-8 flex items-center gap-3">
+                    <span className="text-xl">⚠️</span>
+                    <p className="text-sm font-bold">{operationError || fetchError}</p>
+                </div>
+            )}
+
+            {/* Success Message */}
+            {operationSuccess && (
+                <div className="bg-green-50 border border-green-100 text-green-600 p-4 rounded-xl mb-8 flex items-center gap-3">
+                    <span className="text-xl">✓</span>
+                    <p className="text-sm font-bold">{operationSuccess}</p>
+                </div>
+            )}
+
             {showForm && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 max-w-2xl">
-                    <h2 className="text-sm font-bold tracking-wider uppercase text-gray-500 mb-6">
-                        {editingId ? 'Edit Banner' : 'Add New Banner'}
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mb-12 max-w-2xl transform transition-all">
+                    <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-gray-400 mb-8 pb-4 border-b border-gray-50">
+                        {editingId ? 'Modify Existing Banner' : 'Add New Banner'}
                     </h2>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-8">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Image URL *</label>
+                            <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-3 font-bold">Image URL *</label>
                             <input
                                 type="text"
-                                className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
+                                id="imageUrl"
+                                className="w-full border-b-2 border-gray-100 py-3 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold transition-colors"
                                 value={formData.imageUrl}
-                                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                                placeholder="https://example.com/image.jpg"
+                                onChange={(e) => {
+                                    // Auto-convert URLs using the utility function
+                                    const url = getOptimizedImageUrl(e.target.value, { width: 1200 });
+                                    setFormData({ ...formData, imageUrl: url });
+                                }}
+                                placeholder="Paste image URL (Unsplash & Drive supported)"
                                 required
                             />
-                            <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-tight">
-                                Paste the direct image address (ending in .jpg, .png, etc.)
+                            {formData.imageUrl && (
+                                <div className="mt-4 p-2 border border-dashed border-gray-100 rounded-lg">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <p className="text-[8px] uppercase font-black text-gray-300">Live Preview:</p>
+                                        {formData.imageUrl.includes('images.unsplash.com') && (
+                                            <span className="text-[8px] text-secondary font-bold uppercase tracking-widest animate-pulse">✨ Unsplash Optimized</span>
+                                        )}
+                                        {(formData.imageUrl.includes('drive.google.com/thumbnail') || formData.imageUrl.includes('googleusercontent.com')) && (
+                                            <span className="text-[8px] text-blue-500 font-bold uppercase tracking-widest animate-pulse">☁️ Drive Optimized</span>
+                                        )}
+                                    </div>
+                                    <div className="relative w-full aspect-[21/9] min-h-[120px] rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center border border-gray-100 shadow-inner">
+                                        <img
+                                            key={formData.imageUrl} // Forces re-mount on URL change to reset internal states
+                                            src={formData.imageUrl}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://via.placeholder.com/600x300?text=Invalid+Image+URL';
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-3 italic">
+                                Use high-quality direct links (JPG, PNG, WebP)
                             </p>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
-                                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Title (Optional)</label>
+                                <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-3 font-bold">Title (Optional)</label>
                                 <input
                                     type="text"
-                                    className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
+                                    className="w-full border-b-2 border-gray-100 py-3 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold transition-colors"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    placeholder="Banner Title"
+                                    placeholder="e.g. Summer Sale 2024"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Display Order</label>
+                                <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-3 font-bold">Display Order</label>
                                 <input
                                     type="number"
-                                    className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
+                                    className="w-full border-b-2 border-gray-100 py-3 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold transition-colors"
                                     value={formData.order}
                                     onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
                         </div>
+
                         <div>
-                            <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">External Link / Screen path (Optional)</label>
+                            <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-3 font-bold">Navigation Link (Optional)</label>
                             <input
                                 type="text"
-                                className="w-full border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
+                                className="w-full border-b-2 border-gray-100 py-3 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold transition-colors"
                                 value={formData.link}
                                 onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                                 placeholder="/products or https://..."
                             />
                         </div>
-                        <div className="flex justify-end pt-4">
+
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                            <label className="flex items-center cursor-pointer gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isActive}
+                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                    className="w-5 h-5 accent-secondary"
+                                />
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500">Active / Visible to users</span>
+                            </label>
+                        </div>
+
+                        <div className="flex justify-end pt-4 gap-4">
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-primary transition-colors"
+                            >
+                                Cancel
+                            </button>
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="bg-secondary text-white px-8 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 font-bold uppercase tracking-widest text-xs shadow-md active:scale-95 transition-all"
+                                className="bg-secondary text-white px-10 py-3 rounded-xl hover:bg-green-700 disabled:opacity-50 font-bold uppercase tracking-widest text-[10px] shadow-[0_10px_20px_-10px_rgba(34,197,94,0.5)] active:scale-95 transition-all"
                             >
-                                {submitting ? 'Saving...' : (editingId ? 'Update Banner' : 'Create Banner')}
+                                {submitting ? 'Processing...' : (editingId ? 'Update Banner' : 'Add Banner')}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {banners.map((banner) => (
-                    <div key={banner._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-all">
-                        <div className="relative aspect-video bg-gray-50">
-                            <img
-                                src={banner.imageUrl}
-                                alt={banner.title || 'Banner'}
-                                className="w-full h-full object-cover"
-                                onError={(e) => e.target.src = 'https://via.placeholder.com/300x150?text=Invalid+Image'}
-                            />
-                            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                <button
-                                    onClick={() => handleEdit(banner)}
-                                    className="bg-white text-primary p-3 rounded-full hover:bg-secondary hover:text-white shadow-lg transition-all active:scale-90"
-                                    title="Edit"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(banner._id)}
-                                    className="bg-white text-red-500 p-3 rounded-full hover:bg-red-500 hover:text-white shadow-lg transition-all active:scale-90"
-                                    title="Delete"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                                Order: {banner.order}
-                            </div>
-                        </div>
-                        <div className="p-5">
-                            <h3 className="font-bold text-primary truncate tracking-wide">{banner.title || 'Untitled Banner'}</h3>
-                            <p className="text-xs text-gray-400 truncate mt-1 tracking-tight">{banner.link || 'No external link'}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {banners.length === 0 && !loading && (
-                <div className="text-center py-24 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
-                    <p className="text-sm text-gray-400 italic">No banners configured yet.</p>
+            {loading && !banners.length ? (
+                <div className="flex justify-center items-center py-20">
+                    <LoadingSpinner />
                 </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                        {banners.map((banner) => (
+                            <div key={banner._id} className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500 ${!banner.isActive ? 'opacity-60 grayscale-[0.5]' : ''}`}>
+                                <div className="relative aspect-[21/9] bg-gray-50 overflow-hidden">
+                                    <img
+                                        src={getOptimizedImageUrl(banner.imageUrl, { width: 800 })}
+                                        alt={banner.title || 'Banner'}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        onError={(e) => e.target.src = 'https://via.placeholder.com/600x300?text=Invalid+Image+URL'}
+                                    />
+                                    {!banner.isActive && (
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                            <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-4 py-2 rounded-full uppercase tracking-[0.2em] border border-white/30">Inactive</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-4 backdrop-blur-[2px]">
+                                        <button
+                                            onClick={() => handleEdit(banner)}
+                                            className="bg-white text-primary p-4 rounded-2xl hover:bg-secondary hover:text-white shadow-xl transition-all active:scale-90 transform translate-y-4 group-hover:translate-y-0"
+                                            title="Edit"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(banner._id)}
+                                            className="bg-white text-red-500 p-4 rounded-2xl hover:bg-red-500 hover:text-white shadow-xl transition-all active:scale-90 transform translate-y-4 group-hover:translate-y-0 transition-delay-100"
+                                            title="Delete"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="absolute top-4 left-4 bg-white shadow-lg text-primary text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest z-10">
+                                        #{banner.order}
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    <h3 className="font-bold text-primary truncate tracking-wide text-lg mb-2">{banner.title || 'Promotional Asset'}</h3>
+                                    <div className="flex items-center gap-2 text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                        <p className="text-[10px] truncate tracking-tight font-medium uppercase">{banner.link || 'Internal Route only'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {banners.length === 0 && !loading && (
+                        <div className="text-center py-32 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl mt-12">
+                            <div className="text-4xl mb-4 opacity-20">🖼️</div>
+                            <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">No banners found in your gallery.</p>
+                            <button
+                                onClick={() => {
+                                    resetForm();
+                                    setShowForm(true);
+                                }}
+                                className="mt-6 px-8 py-2 text-[10px] font-bold tracking-[0.15em] uppercase border border-primary text-primary hover:bg-primary hover:text-white transition-all active:scale-95 rounded-lg"
+                            >
+                                Add New Banner
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

@@ -51,7 +51,15 @@ function Reports() {
     return (
         <div className="p-8 min-h-screen bg-[#fafafa]">
             <div className="mb-12">
-                <h1 className="text-4xl font-bold tracking-tight text-primary mb-2">Performance Reports<span className="text-secondary">.</span></h1>
+                <div className="flex justify-between items-center mb-2">
+                    <h1 className="text-4xl font-bold tracking-tight text-primary">Performance Reports<span className="text-secondary">.</span></h1>
+                    <button
+                        onClick={fetchReport}
+                        className="px-6 py-2 text-[10px] font-black uppercase tracking-widest border border-gray-100 bg-white rounded-full hover:bg-primary hover:text-white transition-all active:scale-95"
+                    >
+                        Sync Reports
+                    </button>
+                </div>
                 <p className="text-xs text-gray-400 tracking-widest uppercase font-medium">Agent Wise Conversion Analytics</p>
             </div>
 
