@@ -13,6 +13,9 @@ export const ROUTES = {
   CATEGORIES: '/categories',
   BANNERS: '/banners',
   ANALYTICS: '/analytics',
+  COMMISSIONS: '/commissions',
+  REPORTS: '/reports',
+  PRODUCT_VIEW: '/product/:asin',
   ROOT: '/',
 }
 
@@ -29,6 +32,9 @@ export const API_ENDPOINTS = {
   ADMIN_CATEGORIES: '/api/admin/categories',
   ADMIN_BANNERS: '/api/banners',
   ADMIN_ANALYTICS_CLICKS: '/api/admin/analytics/clicks',
+  ADMIN_TRANSACTIONS: '/api/admin/transactions',
+  ADMIN_WITHDRAWALS: '/api/admin/withdrawals',
+  ADMIN_AGENT_REPORTS: '/api/admin/reports/agent-clicks',
   USERS: '/api/users',
 }
 
@@ -135,6 +141,16 @@ export const MENU_ITEMS = [
     path: ROUTES.ANALYTICS,
     label: 'Analytics',
     icon: '📈',
+  },
+  {
+    path: ROUTES.COMMISSIONS,
+    label: 'Commissions',
+    icon: '💰',
+  },
+  {
+    path: ROUTES.REPORTS,
+    label: 'Reports',
+    icon: '📋',
   },
 ]
 

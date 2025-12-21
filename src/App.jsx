@@ -14,6 +14,9 @@ import Products from './pages/Products'
 import Categories from './pages/Categories'
 import Banners from './pages/Banners'
 import Analytics from './pages/Analytics'
+import Commissions from './pages/Commissions'
+import Reports from './pages/Reports'
+import ProductView from './pages/ProductView'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
@@ -48,6 +51,10 @@ function AppRoutes() {
         }
       />
       <Route
+        path={ROUTES.PRODUCT_VIEW}
+        element={<ProductView />}
+      />
+      <Route
         path={ROUTES.ROOT}
         element={
           <ProtectedRoute>
@@ -63,6 +70,8 @@ function AppRoutes() {
         <Route path="categories" element={<Categories />} />
         <Route path="banners" element={<Banners />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="commissions" element={<Commissions />} />
+        <Route path="reports" element={<Reports />} />
       </Route>
     </Routes>
   )

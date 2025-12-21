@@ -1,12 +1,12 @@
-/**
- * Analytics Page Component
- * Displays product click analytics with filters and pagination
- */
 import { useState, useEffect, useCallback } from 'react'
 import { apiCall } from '../services/api'
 import { AMAZON_SEARCH_INDEX } from '../constants'
+import { useAgents } from '../hooks'
+import { formatCurrency, formatDate } from '../utils/formatters'
+import Pagination from '../components/ui/Pagination'
 
 function Analytics() {
+    const { agents } = useAgents()
     const [clicks, setClicks] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -14,10 +14,11 @@ function Analytics() {
         page: 1,
         limit: 20,
         total: 0,
-        totalPages: 0
+        totalPages: 1
     })
     const [filters, setFilters] = useState({
         category: '',
+        agentId: '',
         startDate: '',
         endDate: ''
     })
@@ -33,6 +34,7 @@ function Analytics() {
             })
 
             if (filters.category) queryParams.append('category', filters.category)
+            if (filters.agentId) queryParams.append('agentId', filters.agentId)
             if (filters.startDate) queryParams.append('startDate', filters.startDate)
             if (filters.endDate) queryParams.append('endDate', filters.endDate)
 
@@ -40,7 +42,11 @@ function Analytics() {
 
             if (response.ok && response.data?.success) {
                 setClicks(response.data.data.clicks || [])
-                setPagination(prev => ({ ...prev, ...response.data.data.pagination }))
+                setPagination(prev => ({
+                    ...prev,
+                    total: response.data.data.pagination.total,
+                    totalPages: response.data.data.pagination.totalPages
+                }))
             } else {
                 setError(response.data?.message || 'Failed to load click data')
             }
@@ -60,161 +66,233 @@ function Analytics() {
         setPagination(prev => ({ ...prev, page: 1 }))
     }
 
-    const updatePage = (newPage) => {
+    const clearFilters = () => {
+        setFilters({
+            category: '',
+            agentId: '',
+            startDate: '',
+            endDate: ''
+        })
+        setPagination(prev => ({ ...prev, page: 1 }))
+    }
+
+    const handlePageChange = (newPage) => {
         setPagination(prev => ({ ...prev, page: newPage }))
     }
 
+    const handleTransactionAction = async (id, status) => {
+        try {
+            const res = await apiCall(`/api/admin/transactions/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status })
+            })
+            if (res.ok) {
+                fetchClicks()
+            } else {
+                alert(res.data.message || 'Operation failed')
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
     return (
-        <div className="p-8 min-h-screen">
+        <div className="p-8 min-h-screen bg-[#fafafa]">
             {/* Header */}
             <div className="mb-12">
                 <div className="flex justify-between items-start mb-8 gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-wide text-primary mb-2">
-                            Analytics.
-                        </h1>
-                        <p className="text-xs text-gray-400 tracking-widest uppercase">
-                            Product Click Tracking
-                        </p>
+                        <h1 className="text-4xl font-bold tracking-tight text-primary mb-2">Analytics<span className="text-secondary">.</span></h1>
+                        <p className="text-xs text-gray-400 tracking-widest uppercase font-medium">Real-time Product Click Stream</p>
                     </div>
                     <button
                         onClick={fetchClicks}
                         disabled={loading}
-                        className="px-5 py-2 text-xs font-bold tracking-[0.15em] uppercase border-b border-primary text-primary hover:opacity-70 disabled:opacity-40"
+                        className="px-6 py-2 text-[10px] font-black uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white rounded-full transition-all disabled:opacity-40"
                     >
-                        Refresh
+                        {loading ? 'Syncing...' : 'Refresh Stream'}
                     </button>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="mb-8 p-6 bg-gray-50 border border-gray-200">
-                <h2 className="text-sm font-bold tracking-wider uppercase text-gray-500 mb-4">Filters</h2>
-                <div className="flex gap-6 flex-wrap">
-                    <div>
-                        <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Category</label>
-                        <select
-                            value={filters.category}
-                            onChange={(e) => updateFilter('category', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold min-w-[180px]"
-                        >
-                            <option value="">All Categories</option>
-                            {Object.values(AMAZON_SEARCH_INDEX).map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">Start Date</label>
-                        <input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={(e) => updateFilter('startDate', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs uppercase tracking-wider text-gray-400 mb-2">End Date</label>
-                        <input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={(e) => updateFilter('endDate', e.target.value)}
-                            className="border-b border-gray-300 py-2 px-1 text-sm bg-transparent outline-none focus:border-primary text-primary font-bold"
-                        />
-                    </div>
+            <div className="mb-8 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm flex gap-8 items-end flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Category</label>
+                    <select
+                        value={filters.category}
+                        onChange={(e) => updateFilter('category', e.target.value)}
+                        className="w-full text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary bg-transparent"
+                    >
+                        <option value="">All Categories</option>
+                        {Object.values(AMAZON_SEARCH_INDEX).map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
                 </div>
+
+                <div className="flex-1 min-w-[200px]">
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Agent</label>
+                    <select
+                        value={filters.agentId}
+                        onChange={(e) => updateFilter('agentId', e.target.value)}
+                        className="w-full text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary bg-transparent"
+                    >
+                        <option value="">All Agents</option>
+                        {agents.map((agent) => (
+                            <option key={agent._id} value={agent._id}>{agent.name} ({agent.referralCode})</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">From</label>
+                    <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => updateFilter('startDate', e.target.value)}
+                        className="text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary px-1"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">To</label>
+                    <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => updateFilter('endDate', e.target.value)}
+                        className="text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary px-1"
+                    />
+                </div>
+
+                <button
+                    onClick={clearFilters}
+                    className="text-[10px] font-black uppercase text-gray-300 hover:text-primary transition-colors mb-1"
+                >
+                    Clear
+                </button>
             </div>
 
-            {/* Error */}
-            {error && (
-                <div className="mb-6 p-4 bg-gray-50 border border-gray-200">
-                    <p className="text-sm text-primary font-bold">{error}</p>
+            {/* Content */}
+            <div className="flex flex-col gap-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold tracking-tight text-primary">
+                        Activity Feed ({pagination.total})
+                    </h2>
                 </div>
-            )}
 
-            {/* Table */}
-            <h2 className="text-xl font-bold tracking-wide text-primary mb-6">
-                Product Views ({pagination.total})
-            </h2>
-
-            {loading ? (
-                <div className="py-20 flex justify-center items-center">
-                    <div className="text-primary text-sm tracking-wide font-bold animate-pulse">Loading...</div>
-                </div>
-            ) : clicks.length > 0 ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50/50">
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Product</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Category</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">User</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Referred By</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {clicks.map((click) => (
-                                    <tr key={click._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-4">
-                                            <p className="font-bold text-sm truncate max-w-xs text-primary" title={click.productName}>
-                                                {click.productName}
-                                            </p>
-                                            <p className="text-xs text-gray-400">ASIN: {click.asin}</p>
-                                        </td>
-                                        <td className="px-4 py-4 text-sm text-primary font-medium">{click.category}</td>
-                                        <td className="px-4 py-4">
-                                            <p className="text-sm font-bold text-primary">{click.user?.name || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-400">{click.user?.email}</p>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            {click.agent ? (
-                                                <div className="bg-gray-100 px-2 py-1 inline-block">
-                                                    <p className="text-xs font-bold">{click.agent.name}</p>
-                                                    <p className="text-[10px] text-gray-500">Ref: {click.agent.referralCode}</p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-300">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4 text-right text-xs text-gray-500">
-                                            {new Date(click.createdAt).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {error && (
+                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-sm text-red-700 font-bold">
+                        {error}
                     </div>
+                )}
 
-                    {/* Pagination */}
-                    <div className="flex justify-between items-center px-6 py-6 border-t border-gray-100">
-                        <p className="text-xs text-gray-400">
-                            Page {pagination.page} of {pagination.totalPages} ({pagination.total} records)
-                        </p>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => updatePage(pagination.page - 1)}
-                                disabled={pagination.page <= 1}
-                                className="px-4 py-2 text-xs font-bold uppercase border border-primary text-primary disabled:opacity-30 hover:bg-primary hover:text-white transition-colors"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => updatePage(pagination.page + 1)}
-                                disabled={pagination.page >= pagination.totalPages}
-                                className="px-4 py-2 text-xs font-bold uppercase border border-primary text-primary disabled:opacity-30 hover:bg-primary hover:text-white transition-colors"
-                            >
-                                Next
-                            </button>
+                {loading ? (
+                    <div className="py-20 text-center animate-pulse text-[10px] font-black uppercase tracking-widest text-gray-300">Decrypting Stream...</div>
+                ) : clicks.length > 0 ? (
+                    <>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50">
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product / ASIN</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Attributed Agent</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status / Action</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {clicks.map((click) => (
+                                            <tr key={click._id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-5">
+                                                    <p className="text-xs font-black text-primary truncate max-w-[240px]" title={click.productName}>
+                                                        {click.productName}
+                                                    </p>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">ASIN: {click.asin}</p>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-tight bg-gray-50 px-2 py-1 rounded">
+                                                        {click.category}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-5 text-center">
+                                                    {click.user ? (
+                                                        <div className="text-left">
+                                                            <p className="text-xs font-bold text-primary">{click.user.name}</p>
+                                                            <p className="text-[9px] text-gray-400 font-mono">{click.user.email}</p>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[9px] font-black text-gray-300 uppercase italic">Guest Visitor</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {click.agent ? (
+                                                        <div className="flex flex-col">
+                                                            <p className="text-xs font-black text-secondary">{click.agent.name}</p>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-[9px] text-gray-400 font-black uppercase">Code:</span>
+                                                                <span className="text-[9px] text-primary font-black uppercase select-all">{click.agent.referralCode}</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[9px] font-black text-gray-200 uppercase tracking-widest">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    {click.commissionStatus === 'pending' ? (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => handleTransactionAction(click.transactionId, 'completed')}
+                                                                className="px-2 py-1 bg-primary text-white text-[8px] font-black uppercase rounded hover:bg-black transition-colors"
+                                                            >
+                                                                Accept
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleTransactionAction(click.transactionId, 'failed')}
+                                                                className="px-2 py-1 border border-gray-100 text-gray-400 text-[8px] font-black uppercase rounded hover:bg-red-50 hover:text-red-500 transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' :
+                                                                click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
+                                                                    'bg-gray-50 text-gray-400'
+                                                            }`}>
+                                                            {click.commissionStatus === 'none' ? 'Ineligible' : click.commissionStatus === 'completed' ? 'Accepted' : 'Rejected'}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5 text-right">
+                                                    <p className="text-xs font-bold text-gray-500">{formatDate(click.createdAt)}</p>
+                                                    <p className="text-[9px] text-gray-300 font-bold">{new Date(click.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+
+                        <div className="mt-8">
+                            <Pagination
+                                currentPage={pagination.page}
+                                totalPages={pagination.totalPages}
+                                totalItems={pagination.total}
+                                itemsPerPage={pagination.limit}
+                                onPageChange={handlePageChange}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="py-20 bg-white rounded-2xl border border-dashed border-gray-200 text-center">
+                        <p className="text-gray-300 text-sm italic">No activity detected for the selected filters</p>
                     </div>
-                </div>
-            ) : (
-                <p className="text-center py-12 text-gray-400 italic">No click data found for the selected filters.</p>
-            )}
+                )}
+            </div>
         </div>
     )
 }

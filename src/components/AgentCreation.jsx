@@ -17,6 +17,7 @@ function AgentCreation({ onAgentCreated }) {
     password: '',
     mobile: '',
     role: USER_ROLES.AGENT,
+    referredByCode: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,6 +41,7 @@ function AgentCreation({ onAgentCreated }) {
       password: '',
       mobile: '',
       role: USER_ROLES.AGENT,
+      referredByCode: '',
     })
   }
 
@@ -53,6 +55,7 @@ function AgentCreation({ onAgentCreated }) {
       const dataWithRole = {
         ...formData,
         role: USER_ROLES.AGENT,
+        referralCode: formData.referredByCode, // Backend uses referralCode parameter for referredBy logic in signup
       }
       const response = await apiCall('/api/users', {
         method: 'POST',
@@ -62,12 +65,12 @@ function AgentCreation({ onAgentCreated }) {
       if (response.ok) {
         setSuccess(true)
         resetForm()
-        
+
         // Notify parent component
         if (onAgentCreated) {
           onAgentCreated()
         }
-        
+
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000)
       } else {
@@ -155,9 +158,19 @@ function AgentCreation({ onAgentCreated }) {
           error={error && !formData.password ? 'Password is required (min 6 characters)' : ''}
         />
 
+        <Input
+          label="Referred By (Referral Code)"
+          id="referredByCode"
+          name="referredByCode"
+          type="text"
+          value={formData.referredByCode}
+          onChange={handleChange}
+          placeholder="Enter referral code of the referring agent (Optional)"
+        />
+
         {error && (
-          <ErrorMessage 
-            message={error} 
+          <ErrorMessage
+            message={error}
             className="m-0"
           />
         )}
@@ -168,10 +181,10 @@ function AgentCreation({ onAgentCreated }) {
           </div>
         )}
 
-        <Button 
-          type="submit" 
-          variant="primary" 
-          size="large" 
+        <Button
+          type="submit"
+          variant="primary"
+          size="large"
           disabled={loading}
           loading={loading}
           className="mt-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 active:translate-y-0"
@@ -185,4 +198,3 @@ function AgentCreation({ onAgentCreated }) {
 }
 
 export default AgentCreation
-

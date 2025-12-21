@@ -18,8 +18,16 @@ export function useDashboardStats() {
     totalProducts: 0,
     totalCategories: 0,
     totalClicks: 0,
+    clicksBreakdown: {
+      today: 0,
+      week: 0,
+      month: 0,
+      year: 0
+    },
+    earningsToday: 0,
     recentUsers: [],
     recentClicks: [],
+    topProducts: [],
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -40,8 +48,11 @@ export function useDashboardStats() {
           totalProducts: data.totalProducts || 0,
           totalCategories: data.totalCategories || 0,
           totalClicks: data.totalClicks || 0,
+          clicksBreakdown: data.clicksBreakdown || { today: 0, week: 0, month: 0, year: 0 },
+          earningsToday: data.earningsToday || 0,
           recentUsers: data.recentUsers || [],
           recentClicks: data.recentClicks || [],
+          topProducts: data.topProducts || [],
         })
       } else {
         setError(response.data?.message || 'Failed to load dashboard statistics')
