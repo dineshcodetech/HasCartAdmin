@@ -17,6 +17,7 @@ import Analytics from './pages/Analytics'
 import Commissions from './pages/Commissions'
 import Reports from './pages/Reports'
 import ProductView from './pages/ProductView'
+import Landing from './pages/Landing'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
@@ -51,18 +52,20 @@ function AppRoutes() {
         }
       />
       <Route
+        path={ROUTES.ROOT}
+        element={<Landing />}
+      />
+      <Route
         path={ROUTES.PRODUCT_VIEW}
         element={<ProductView />}
       />
       <Route
-        path={ROUTES.ROOT}
         element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
         <Route path="agents" element={<Agents />} />
