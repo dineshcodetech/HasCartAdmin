@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiCall } from '../services/api'
-import { formatCurrency, formatDate } from '../utils/formatters'
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters'
 import { useAgents } from '../hooks'
 
 function Commissions() {
@@ -148,6 +148,33 @@ function Commissions() {
     useEffect(() => {
         setPage(1)
     }, [activeTab, filters.userId, filters.status, filters.startDate, filters.endDate])
+
+    const handleRateUpdate = async (clickId, newRate) => {
+        try {
+            const token = localStorage.getItem('token')
+            const rateValue = parseFloat(newRate);
+            if (isNaN(rateValue)) return alert('Invalid rate');
+
+            const res = await fetch(`${API_BASE_URL}/admin/analytics/clicks/${clickId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ commissionRate: rateValue })
+            })
+            const data = await res.json()
+            if (data.success) {
+                // alert('Rate updated!'); // Optional
+                fetchClicks(); // Refresh list
+            } else {
+                alert(data.message || 'Failed to update rate')
+            }
+        } catch (err) {
+            console.error(err)
+            alert('Failed to update rate')
+        }
+    }
 
     const handleWithdrawalAction = async (id, status) => {
         try {
@@ -354,8 +381,10 @@ function Commissions() {
                         <thead>
                             <tr className="bg-gray-50/50">
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Agent</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Price</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Rate</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Commission</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Date</th>
@@ -368,7 +397,9 @@ function Commissions() {
                                     <td className="px-6 py-4">
                                         <p className="text-xs font-bold text-primary truncate max-w-xs">{click.productName}</p>
                                         <p className="text-[9px] text-gray-400 uppercase font-black">ASIN: {click.asin}</p>
-                                        <p className="text-[9px] text-gray-300">{click.category}</p>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">{click.category || 'Uncategorized'}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         {click.agent ? (
@@ -382,6 +413,9 @@ function Commissions() {
                                     </td>
                                     <td className="px-6 py-4 text-xs font-black text-center text-gray-700">
                                         {formatCurrency(click.price || 0)}
+                                    </td>
+                                    <td className="px-6 py-4 text-xs font-black text-center text-gray-500">
+                                        {click.commissionRate ? `${(click.commissionRate * 100).toFixed(1)}%` : '—'}
                                     </td>
                                     <td className="px-6 py-4 text-xs font-black text-center text-green-600">
                                         {formatCurrency(click.commissionAmount || 0)}
@@ -399,11 +433,20 @@ function Commissions() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <span className="text-[10px] font-bold text-gray-300">{formatDate(click.createdAt)}</span>
+                                        <span className="text-[10px] font-bold text-gray-300">{formatDateTime(click.createdAt)}</span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         {(click.commissionStatus === 'pending' || click.commissionStatus === 'none') && click.agent ? (
                                             <div className="flex gap-2 justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        const newRate = prompt('Enter new commission % (e.g., 5 for 5%)', (click.commissionRate * 100).toFixed(1));
+                                                        if (newRate !== null) handleRateUpdate(click._id, newRate);
+                                                    }}
+                                                    className="border border-gray-100 text-primary text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all mr-2"
+                                                >
+                                                    Edit
+                                                </button>
                                                 <button
                                                     onClick={() => handleClickAction(click, 'completed')}
                                                     className="bg-primary text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-md hover:bg-black active:scale-95 transition-all"
@@ -412,7 +455,7 @@ function Commissions() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleClickAction(click, 'failed')}
-                                                    className="border border-gray-100 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all"
+                                                    className="border border-gray-100 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all ml-2"
                                                 >
                                                     Reject
                                                 </button>
@@ -420,13 +463,23 @@ function Commissions() {
                                         ) : click.commissionStatus === 'none' && !click.agent ? (
                                             <span className="text-[10px] font-bold text-gray-300 italic">No Agent</span>
                                         ) : (
-                                            <span className="text-[10px] font-bold text-gray-300">—</span>
+                                            <div className="flex gap-2 justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        const newRate = prompt('Enter new commission % (e.g., 5 for 5%)', (click.commissionRate * 100).toFixed(1));
+                                                        if (newRate !== null) handleRateUpdate(click._id, newRate);
+                                                    }}
+                                                    className="border border-gray-100 text-primary text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all"
+                                                >
+                                                    Edit Rate
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-20 text-center text-gray-300 text-sm">
+                                    <td colSpan="9" className="px-6 py-20 text-center text-gray-300 text-sm">
                                         No product clicks found for the selected filters
                                     </td>
                                 </tr>
@@ -485,7 +538,7 @@ function Commissions() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className="text-[10px] font-bold text-gray-300">{formatDate(tx.createdAt)}</span>
+                                            <span className="text-[10px] font-bold text-gray-300">{formatDateTime(tx.createdAt)}</span>
                                         )}
                                     </td>
                                 </tr>
@@ -543,7 +596,7 @@ function Commissions() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <span className="text-[10px] font-bold text-gray-300">{formatDate(wd.createdAt)}</span>
+                                                <span className="text-[10px] font-bold text-gray-300">{formatDateTime(wd.createdAt)}</span>
                                             )}
                                         </div>
                                     </td>
@@ -552,137 +605,140 @@ function Commissions() {
                         </tbody>
                     </table>
                 </div>
-            )}
+            )
+            }
 
             {/* Withdrawal Details Modal */}
-            {selectedWithdrawal && (
-                <div className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
-                        <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                            <div>
-                                <h3 className="text-sm font-black uppercase tracking-widest text-primary">Withdrawal Details</h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-1">Transaction audit</p>
-                            </div>
-                            <button
-                                onClick={() => setSelectedWithdrawal(null)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white transition-colors text-gray-400 hover:text-primary shadow-sm"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-8">
-                            {/* Agent Info Section */}
-                            <div>
-                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Requester Information</label>
-                                <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-primary/20">
-                                        {selectedWithdrawal.user?.name?.charAt(0) || 'A'}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-black text-primary">{selectedWithdrawal.user?.name}</p>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedWithdrawal.user?.referralCode}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Payout Details Section */}
-                            <div>
-                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Payout Configuration</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
-                                        <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Amount</p>
-                                        <p className="text-lg font-black text-primary">{formatCurrency(selectedWithdrawal.amount)}</p>
-                                    </div>
-                                    <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
-                                        <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Method</p>
-                                        <p className="text-lg font-black text-secondary">{selectedWithdrawal.paymentMethod}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Payment Details Input by User */}
-                            <div>
-                                <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">User Provided Details</label>
-                                <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-2xl max-h-[200px] overflow-y-auto custom-scrollbar">
-                                    {selectedWithdrawal.paymentDetails ? (() => {
-                                        let details = selectedWithdrawal.paymentDetails;
-                                        let isObject = typeof details === 'object';
-
-                                        // Attempt to parse if it's a JSON string
-                                        if (!isObject && typeof details === 'string' && (details.startsWith('{') || details.startsWith('['))) {
-                                            try {
-                                                details = JSON.parse(details);
-                                                isObject = true;
-                                            } catch (e) {
-                                                // Not valid JSON, keep as string
-                                            }
-                                        }
-
-                                        if (isObject) {
-                                            return (
-                                                <div className="space-y-3">
-                                                    {Object.entries(details).map(([key, value]) => (
-                                                        <div key={key} className="flex flex-col pb-2 border-b border-secondary/5 last:border-0">
-                                                            <span className="text-[9px] uppercase font-black text-gray-400 mb-0.5">{key.replace(/([A-Z]|_)/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                                                            <span className="text-xs font-bold text-primary break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value || '—')}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        }
-
-                                        return <p className="text-xs font-bold text-primary whitespace-pre-wrap">{details}</p>;
-                                    })() : (
-                                        <p className="text-xs font-bold text-gray-300 italic">No specific details provided by agent.</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Admin Notes if any */}
-                            {selectedWithdrawal.adminNotes && (
+            {
+                selectedWithdrawal && (
+                    <div className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+                            <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                                 <div>
-                                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Admin Verification Notes</label>
-                                    <p className="text-xs font-medium text-gray-500 italic p-4 bg-orange-50/50 rounded-xl border border-orange-100">{selectedWithdrawal.adminNotes}</p>
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-primary">Withdrawal Details</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-1">Transaction audit</p>
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex gap-4">
-                            {selectedWithdrawal.status === 'pending' && (
-                                <>
-                                    <button
-                                        onClick={() => {
-                                            handleWithdrawalAction(selectedWithdrawal._id, 'approved');
-                                            setSelectedWithdrawal(null);
-                                        }}
-                                        className="flex-1 bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                                    >
-                                        Approve Request
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            handleWithdrawalAction(selectedWithdrawal._id, 'rejected');
-                                            setSelectedWithdrawal(null);
-                                        }}
-                                        className="flex-1 bg-white border border-gray-100 text-red-500 text-[10px] font-black uppercase py-4 rounded-2xl hover:bg-red-50 transition-all"
-                                    >
-                                        Reject
-                                    </button>
-                                </>
-                            )}
-                            {selectedWithdrawal.status !== 'pending' && (
                                 <button
                                     onClick={() => setSelectedWithdrawal(null)}
-                                    className="w-full bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all"
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white transition-colors text-gray-400 hover:text-primary shadow-sm"
                                 >
-                                    Dismiss Audit
+                                    ✕
                                 </button>
-                            )}
+                            </div>
+
+                            <div className="p-8 space-y-8">
+                                {/* Agent Info Section */}
+                                <div>
+                                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Requester Information</label>
+                                    <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-primary/20">
+                                            {selectedWithdrawal.user?.name?.charAt(0) || 'A'}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-primary">{selectedWithdrawal.user?.name}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedWithdrawal.user?.referralCode}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Payout Details Section */}
+                                <div>
+                                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Payout Configuration</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
+                                            <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Amount</p>
+                                            <p className="text-lg font-black text-primary">{formatCurrency(selectedWithdrawal.amount)}</p>
+                                        </div>
+                                        <div className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm">
+                                            <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Method</p>
+                                            <p className="text-lg font-black text-secondary">{selectedWithdrawal.paymentMethod}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Payment Details Input by User */}
+                                <div>
+                                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">User Provided Details</label>
+                                    <div className="p-5 bg-secondary/5 border border-secondary/10 rounded-2xl max-h-[200px] overflow-y-auto custom-scrollbar">
+                                        {selectedWithdrawal.paymentDetails ? (() => {
+                                            let details = selectedWithdrawal.paymentDetails;
+                                            let isObject = typeof details === 'object';
+
+                                            // Attempt to parse if it's a JSON string
+                                            if (!isObject && typeof details === 'string' && (details.startsWith('{') || details.startsWith('['))) {
+                                                try {
+                                                    details = JSON.parse(details);
+                                                    isObject = true;
+                                                } catch (e) {
+                                                    // Not valid JSON, keep as string
+                                                }
+                                            }
+
+                                            if (isObject) {
+                                                return (
+                                                    <div className="space-y-3">
+                                                        {Object.entries(details).map(([key, value]) => (
+                                                            <div key={key} className="flex flex-col pb-2 border-b border-secondary/5 last:border-0">
+                                                                <span className="text-[9px] uppercase font-black text-gray-400 mb-0.5">{key.replace(/([A-Z]|_)/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                                                                <span className="text-xs font-bold text-primary break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value || '—')}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+
+                                            return <p className="text-xs font-bold text-primary whitespace-pre-wrap">{details}</p>;
+                                        })() : (
+                                            <p className="text-xs font-bold text-gray-300 italic">No specific details provided by agent.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Admin Notes if any */}
+                                {selectedWithdrawal.adminNotes && (
+                                    <div>
+                                        <label className="block text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">Admin Verification Notes</label>
+                                        <p className="text-xs font-medium text-gray-500 italic p-4 bg-orange-50/50 rounded-xl border border-orange-100">{selectedWithdrawal.adminNotes}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex gap-4">
+                                {selectedWithdrawal.status === 'pending' && (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                handleWithdrawalAction(selectedWithdrawal._id, 'approved');
+                                                setSelectedWithdrawal(null);
+                                            }}
+                                            className="flex-1 bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                        >
+                                            Approve Request
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleWithdrawalAction(selectedWithdrawal._id, 'rejected');
+                                                setSelectedWithdrawal(null);
+                                            }}
+                                            className="flex-1 bg-white border border-gray-100 text-red-500 text-[10px] font-black uppercase py-4 rounded-2xl hover:bg-red-50 transition-all"
+                                        >
+                                            Reject
+                                        </button>
+                                    </>
+                                )}
+                                {selectedWithdrawal.status !== 'pending' && (
+                                    <button
+                                        onClick={() => setSelectedWithdrawal(null)}
+                                        className="w-full bg-primary text-white text-[10px] font-black uppercase py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all"
+                                    >
+                                        Dismiss Audit
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <div className="mt-12">
                 <Pagination
@@ -705,7 +761,7 @@ function Commissions() {
                     onPageChange={(p) => setPage(p)}
                 />
             </div>
-        </div>
+        </div >
     )
 }
 

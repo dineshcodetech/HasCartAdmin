@@ -8,8 +8,17 @@ import { apiCall } from '../services/api'
 
 function Agents() {
   // Use useUsers hook with role='agent' fixed
-  const { users: agents, loading, error, pagination, filters, updateFilters, updatePagination, refetch } = useUsers({ role: 'agent' })
+  const { users: agents, loading, error, pagination, filters, updateFilters, updatePagination, refetch, toggleStatus } = useUsers({ role: 'agent' })
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [actionLoading, setActionLoading] = useState(null)
+
+  const handleToggleStatus = async (userId, currentStatus) => {
+    if (confirm(`Are you sure you want to ${currentStatus ? 'activate' : 'deactivate'} this agent?`)) {
+      setActionLoading(userId)
+      await toggleStatus(userId)
+      setActionLoading(null)
+    }
+  }
 
   // Referral Modal States
   const [selectedAgent, setSelectedAgent] = useState(null)
@@ -130,7 +139,9 @@ function Agents() {
                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Email</th>
                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Mobile</th>
                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Referrals</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                         <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Joined Date</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -156,7 +167,24 @@ function Agents() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-xs font-medium text-gray-500">
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${agent.isDeactivated ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                              {agent.isDeactivated ? 'Deactivated' : 'Active'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-medium text-gray-500">
                             {agent.createdAt ? formatDate(agent.createdAt) : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => handleToggleStatus(agent._id, agent.isDeactivated)}
+                              disabled={actionLoading === agent._id}
+                              className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest border rounded-full transition-all ${agent.isDeactivated
+                                ? 'border-green-200 text-green-600 hover:bg-green-600 hover:text-white'
+                                : 'border-red-200 text-red-500 hover:bg-red-500 hover:text-white'
+                                } disabled:opacity-50`}
+                            >
+                              {actionLoading === agent._id ? 'Processing...' : (agent.isDeactivated ? 'Activate' : 'Deactivate')}
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -172,6 +200,7 @@ function Agents() {
                   totalItems={pagination.total}
                   itemsPerPage={pagination.limit}
                   onPageChange={(page) => updatePagination({ page })}
+                  onRowsPerPageChange={(limit) => updatePagination({ limit, page: 1 })}
                 />
               </div>
             </>

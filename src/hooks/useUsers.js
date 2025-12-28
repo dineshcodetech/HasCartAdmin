@@ -8,7 +8,7 @@ export function useUsers(initialFilters = {}) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 })
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 })
   const [filters, setFilters] = useState(initialFilters)
 
   const fetchUsers = useCallback(async () => {
@@ -59,6 +59,23 @@ export function useUsers(initialFilters = {}) {
     setPagination(prev => ({ ...prev, ...newPag }))
   }
 
+  const toggleStatus = async (userId) => {
+    try {
+      const response = await apiCall(`/api/admin/users/${userId}/status`, { method: 'PUT' })
+      if (response.ok) {
+        // Update local state without full refetch
+        setUsers(prev => prev.map(u =>
+          u._id === userId ? { ...u, isDeactivated: !u.isDeactivated } : u
+        ))
+        return { success: true, message: response.message }
+      } else {
+        return { success: false, message: response.error }
+      }
+    } catch (err) {
+      return { success: false, message: err.message }
+    }
+  }
+
   return {
     users,
     loading,
@@ -68,5 +85,6 @@ export function useUsers(initialFilters = {}) {
     updateFilters,
     updatePagination,
     refetch: fetchUsers,
+    toggleStatus
   }
 }
