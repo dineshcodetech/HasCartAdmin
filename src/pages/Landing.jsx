@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useBanners } from '../hooks/useBanners';
 
 const Landing = () => {
@@ -132,7 +133,7 @@ const Landing = () => {
                                         </div>
                                     </a>
 
-                                    <a href="/hascart.apk" download className="flex items-center justify-center px-6 py-4 bg-[#76BA1B] text-white rounded-xl transition-all hover:scale-105 space-x-3 shadow-lg shadow-[#76BA1B]/15">
+                                    <a href="https://apks-mobile-apps.s3.ap-south-1.amazonaws.com/has-cart/app-release.apk" className="flex items-center justify-center px-6 py-4 bg-[#76BA1B] text-white rounded-xl transition-all hover:scale-105 space-x-3 shadow-lg shadow-[#76BA1B]/15">
                                         <div className="text-2xl">📦</div>
                                         <div className="text-left">
                                             <div className="text-[9px] font-bold uppercase tracking-widest leading-none text-white/80">Direct Download</div>
@@ -216,12 +217,18 @@ const Landing = () => {
                         </div>
 
                         <div className="flex gap-10 sm:gap-16">
-                            <FooterLinks title="Ecosystem" links={['Marketplace', 'Rewards']} />
-                            <FooterLinks title="Platform" links={['Terms', 'Privacy']} />
+                            <FooterLinks title="Ecosystem" links={[
+                                { label: 'Marketplace', path: '/#performance' },
+                                { label: 'Rewards', path: '/#vision' }
+                            ]} />
+                            <FooterLinks title="Platform" links={[
+                                { label: 'Terms of Service', path: '/terms' },
+                                { label: 'Privacy Policy', path: '/privacy' }
+                            ]} />
                         </div>
 
                         <div className="flex flex-col items-center lg:items-end gap-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                            <a href="/hascart.apk" download className="flex items-center space-x-2 text-[#76BA1B] hover:text-[#2B3990] transition-colors border border-[#76BA1B]/20 px-3 py-1.5 rounded-lg">
+                            <a href="https://apks-mobile-apps.s3.ap-south-1.amazonaws.com/has-cart/app-release.apk" className="flex items-center space-x-2 text-[#76BA1B] hover:text-[#2B3990] transition-colors border border-[#76BA1B]/20 px-3 py-1.5 rounded-lg">
                                 <span>📦</span>
                                 <span>Download android APK</span>
                             </a>
@@ -238,7 +245,13 @@ const FooterLinks = ({ title, links }) => (
     <div className="flex flex-col space-y-3">
         <span className="text-[10px] font-black text-[#2B3990] uppercase tracking-widest mb-1">{title}</span>
         {links.map((link, i) => (
-            <a key={i} href="#" className="text-slate-400 hover:text-[#2B3990] transition-colors text-[11px] font-bold">{link}</a>
+            <Link
+                key={i}
+                to={link.path}
+                className="text-slate-400 hover:text-[#2B3990] transition-colors text-[11px] font-bold"
+            >
+                {link.label}
+            </Link>
         ))}
     </div>
 );

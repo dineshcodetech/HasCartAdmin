@@ -18,6 +18,8 @@ import Commissions from './pages/Commissions'
 import Reports from './pages/Reports'
 import ProductView from './pages/ProductView'
 import Landing from './pages/Landing'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
@@ -58,6 +60,14 @@ function AppRoutes() {
       <Route
         path={ROUTES.PRODUCT_VIEW}
         element={<ProductView />}
+      />
+      <Route
+        path={ROUTES.PRIVACY}
+        element={<Privacy />}
+      />
+      <Route
+        path={ROUTES.TERMS}
+        element={<Terms />}
       />
       <Route
         element={

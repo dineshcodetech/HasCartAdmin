@@ -16,6 +16,8 @@ export const ROUTES = {
   COMMISSIONS: '/commissions',
   REPORTS: '/reports',
   PRODUCT_VIEW: '/product/:asin',
+  PRIVACY: '/privacy',
+  TERMS: '/terms',
   ROOT: '/',
 }
 

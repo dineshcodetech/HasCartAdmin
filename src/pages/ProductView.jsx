@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { apiCall } from '../services/api'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import { useAuth } from '../context/AuthContext'
+import { AMAZON_SEARCH_INDEX } from '../constants'
 
 function ProductView() {
     const { asin } = useParams()
@@ -13,6 +15,14 @@ function ProductView() {
     const [agent, setAgent] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const { isAuthenticated, token } = useAuth()
+
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editFormData, setEditFormData] = useState({
+        category: '',
+        searchIndex: ''
+    })
+    const [saving, setSaving] = useState(false)
 
     useEffect(() => {
         const fetchAndTrack = async () => {
@@ -47,7 +57,7 @@ function ProductView() {
                             body: JSON.stringify({
                                 asin: item.ASIN,
                                 productName: item.ItemInfo?.Title?.DisplayValue,
-                                category: item.ItemInfo?.Classifications?.ProductGroup?.DisplayValue || 'Uncategorized',
+                                category: item.BrowseNodeInfo?.BrowseNodes?.[0]?.DisplayName || item.ItemInfo?.Classifications?.ProductGroup?.DisplayValue || 'Uncategorized',
                                 price: item.Offers?.Listings?.[0]?.Price?.Amount || 0,
                                 imageUrl: item.Images?.Primary?.Large?.URL || item.Images?.Primary?.Medium?.URL,
                                 productUrl: item.DetailPageURL,
@@ -73,6 +83,54 @@ function ProductView() {
     const handleContinue = () => {
         if (product?.DetailPageURL) {
             window.location.href = product.DetailPageURL
+        }
+    }
+
+    const openEditModal = async () => {
+        try {
+            // Fetch current details from DB to populate form
+            const res = await apiCall(`/api/products/${asin}/details`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (res.ok && res.data?.data) {
+                const { localProduct, smartCategory } = res.data.data
+                setEditFormData({
+                    category: localProduct?.category || '',
+                    searchIndex: localProduct?.searchIndex || smartCategory || 'All'
+                })
+            }
+            setShowEditModal(true)
+        } catch (err) {
+            console.error('Failed to fetch product details', err)
+            // Fallback to defaults
+            setShowEditModal(true)
+        }
+    }
+
+    const handleSaveProduct = async () => {
+        try {
+            setSaving(true)
+            const res = await apiCall(`/api/products/${asin}`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(editFormData)
+            })
+
+            if (res.ok) {
+                setShowEditModal(false)
+                // Optionally refresh product data
+                alert('Product category updated successfully!')
+            } else {
+                alert('Failed to update product')
+            }
+        } catch (err) {
+            console.error('Update failed', err)
+            alert('Update failed')
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -165,6 +223,71 @@ function ProductView() {
             <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
                 Powered by <span className="text-primary">HasCart</span>
             </p>
+
+            {/* Admin Edit Trigger */}
+            {isAuthenticated && (
+                <button
+                    onClick={openEditModal}
+                    className="fixed bottom-6 right-6 w-12 h-12 bg-black text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50"
+                    title="Edit Product Category"
+                >
+                    <span className="text-xl">✎</span>
+                </button>
+            )}
+
+            {/* Edit Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-lg">Edit Product Category</h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-black">✕</button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Internal Category (Tag)</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.category}
+                                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                                    className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-black outline-none"
+                                    placeholder="e.g. Mobiles, Men's Shoes"
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                    System will automatically map this to Amazon Search Index.
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Amazon Search Index</label>
+                                <select
+                                    value={editFormData.searchIndex}
+                                    onChange={(e) => setEditFormData({ ...editFormData, searchIndex: e.target.value })}
+                                    className="w-full border rounded-lg px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-black outline-none"
+                                >
+                                    {Object.entries(AMAZON_SEARCH_INDEX).map(([key, value]) => (
+                                        <option key={key} value={value}>{value}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveProduct}
+                                disabled={saving}
+                                className="px-6 py-2 text-sm font-bold bg-black text-white rounded-lg hover:opacity-80 disabled:opacity-50"
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
