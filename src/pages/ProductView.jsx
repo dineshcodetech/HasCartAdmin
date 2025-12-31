@@ -177,7 +177,7 @@ function ProductView() {
                     />
                     {agent && (
                         <div className="absolute top-6 right-6 bg-secondary text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-secondary/30">
-                            Trusted Agent Portfolio
+                            Trusted HasCart Portfolio
                         </div>
                     )}
                 </div>
@@ -203,7 +203,6 @@ function ProductView() {
 
                     <p className="text-gray-400 text-[10px] uppercase font-black tracking-[0.1em] mb-10 leading-relaxed px-4">
                         You are being redirected to Amazon to complete your purchase securely.
-                        This referral helps your agent earn a small commission at no extra cost to you.
                     </p>
 
                     <button
@@ -215,7 +214,7 @@ function ProductView() {
                     </button>
 
                     <p className="mt-8 text-[9px] text-gray-300 font-bold uppercase tracking-widest">
-                        Amazon Affiliate Integrated • ASIN: {asin}
+                        Amazon Verified Seller
                     </p>
                 </div>
             </div>

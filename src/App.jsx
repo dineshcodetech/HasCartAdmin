@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ROUTES } from './constants'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
@@ -52,6 +53,10 @@ function AppRoutes() {
             <Login />
           )
         }
+      />
+      <Route
+        path={ROUTES.FORGOT_PASSWORD}
+        element={<ForgotPassword />}
       />
       <Route
         path={ROUTES.ROOT}

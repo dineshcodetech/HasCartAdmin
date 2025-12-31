@@ -18,6 +18,7 @@ export const ROUTES = {
   PRODUCT_VIEW: '/product/:asin',
   PRIVACY: '/privacy',
   TERMS: '/terms',
+  FORGOT_PASSWORD: '/forgot-password',
   ROOT: '/',
 }
 

@@ -101,8 +101,8 @@ const Privacy = () => {
                         </p>
                         <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                             <p className="font-bold text-[#2B3990]">HasCart Support</p>
-                            <p>Email: support@hascart.in</p>
-                            <p>Numbers: 7337307619, 6301348580</p>
+                            <p>Email: hascart99@gmail.com</p>
+                            <p>Numbers: 9966141950</p>
                         </div>
                     </section>
                 </div>

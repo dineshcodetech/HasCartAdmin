@@ -19,6 +19,7 @@ function Analytics() {
     const [filters, setFilters] = useState({
         category: '',
         agentId: '',
+        status: '',
         startDate: '',
         endDate: ''
     })
@@ -35,6 +36,7 @@ function Analytics() {
 
             if (filters.category) queryParams.append('category', filters.category)
             if (filters.agentId) queryParams.append('agentId', filters.agentId)
+            if (filters.status) queryParams.append('status', filters.status)
             if (filters.startDate) queryParams.append('startDate', filters.startDate)
             if (filters.endDate) queryParams.append('endDate', filters.endDate)
 
@@ -70,6 +72,7 @@ function Analytics() {
         setFilters({
             category: '',
             agentId: '',
+            status: '',
             startDate: '',
             endDate: ''
         })
@@ -142,6 +145,21 @@ function Analytics() {
                         {agents.map((agent) => (
                             <option key={agent._id} value={agent._id}>{agent.name} ({agent.referralCode})</option>
                         ))}
+                    </select>
+                </div>
+
+                <div className="flex-1 min-w-[140px]">
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Status</label>
+                    <select
+                        value={filters.status}
+                        onChange={(e) => updateFilter('status', e.target.value)}
+                        className="w-full text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary bg-transparent"
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="pending">Under Review</option>
+                        <option value="completed">Accepted</option>
+                        <option value="failed">Rejected</option>
+                        <option value="none">Ineligible</option>
                     </select>
                 </div>
 
@@ -259,8 +277,8 @@ function Analytics() {
                                                         </div>
                                                     ) : (
                                                         <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' :
-                                                                click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
-                                                                    'bg-gray-50 text-gray-400'
+                                                            click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
+                                                                'bg-gray-50 text-gray-400'
                                                             }`}>
                                                             {click.commissionStatus === 'none' ? 'Ineligible' : click.commissionStatus === 'completed' ? 'Accepted' : 'Rejected'}
                                                         </span>

@@ -339,9 +339,18 @@ function Commissions() {
                     >
                         <option value="">All Statuses</option>
                         <option value="pending">Under Review</option>
-                        <option value="completed">Accepted</option>
-                        <option value="failed">Rejected</option>
-                        {activeTab === 'clicks' && <option value="ineligible">Ineligible</option>}
+                        {activeTab === 'withdrawals' ? (
+                            <>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </>
+                        ) : (
+                            <>
+                                <option value="completed">Accepted</option>
+                                <option value="failed">Rejected</option>
+                                {activeTab === 'clicks' && <option value="ineligible">Ineligible</option>}
+                            </>
+                        )}
                     </select>
                 </div>
 

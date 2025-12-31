@@ -106,7 +106,8 @@ const Terms = () => {
                         </p>
                         <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                             <p className="font-bold text-[#2B3990]">HasCart Legal Department</p>
-                            <p>Email: legal@hascart.in</p>
+                            <p>Email: hascart99@gmail.com</p>
+                            <p>Numbers: 9966141950</p>
                             <p>Address: Operational Headquarters, India</p>
                         </div>
                     </section>

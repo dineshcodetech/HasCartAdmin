@@ -25,7 +25,10 @@ export const apiCall = async (endpoint, options = {}) => {
       headers.Authorization = `Bearer ${token}`
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+
+    const response = await fetch(`${baseUrl}${cleanEndpoint}`, {
       headers,
       ...options,
     })

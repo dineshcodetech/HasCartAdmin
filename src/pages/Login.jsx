@@ -3,7 +3,7 @@
  * Matches React Native minimalist design pattern
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ROUTES } from '../constants'
 import { apiCall } from '../services/api'
@@ -115,6 +115,14 @@ function Login() {
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
             />
+            <div className="flex justify-end mt-2">
+              <Link
+                to={ROUTES.FORGOT_PASSWORD}
+                className="text-gray-400 text-[10px] tracking-widest font-bold uppercase hover:text-secondary transition-colors"
+              >
+                Forgot Password?
+              </Link>
+            </div>
           </div>
 
           {error && (
