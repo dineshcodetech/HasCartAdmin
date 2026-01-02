@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiCall } from '../services/api'
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters'
 import { useAgents } from '../hooks'
+import CommissionModal from '../components/CommissionModal'
 
 function Commissions() {
     const { agents } = useAgents()
@@ -11,6 +12,8 @@ function Commissions() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [activeTab, setActiveTab] = useState('transactions')
+    const [selectedClick, setSelectedClick] = useState(null)
+    const [isRateModalOpen, setIsRateModalOpen] = useState(false)
     const [txPagination, setTxPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 })
     const [wdPagination, setWdPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 })
     const [clicksPagination, setClicksPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 })
@@ -151,24 +154,19 @@ function Commissions() {
 
     const handleRateUpdate = async (clickId, newRate) => {
         try {
-            const token = localStorage.getItem('token')
             const rateValue = parseFloat(newRate);
             if (isNaN(rateValue)) return alert('Invalid rate');
 
-            const res = await fetch(`${API_BASE_URL}/admin/analytics/clicks/${clickId}`, {
+            const res = await apiCall(`/api/admin/analytics/clicks/${clickId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ commissionRate: rateValue })
             })
-            const data = await res.json()
-            if (data.success) {
+
+            if (res.ok && res.data.success) {
                 // alert('Rate updated!'); // Optional
-                fetchClicks(); // Refresh list
+                fetchData(); // Refresh list
             } else {
-                alert(data.message || 'Failed to update rate')
+                alert(res.data?.message || 'Failed to update rate')
             }
         } catch (err) {
             console.error(err)
@@ -424,7 +422,7 @@ function Commissions() {
                                         {formatCurrency(click.price || 0)}
                                     </td>
                                     <td className="px-6 py-4 text-xs font-black text-center text-gray-500">
-                                        {click.commissionRate ? `${(click.commissionRate * 100).toFixed(1)}%` : '—'}
+                                        {click.commissionRate ? `${(click.commissionRate * 100).toFixed(2)}%` : '—'}
                                     </td>
                                     <td className="px-6 py-4 text-xs font-black text-center text-green-600">
                                         {formatCurrency(click.commissionAmount || 0)}
@@ -449,8 +447,8 @@ function Commissions() {
                                             <div className="flex gap-2 justify-end">
                                                 <button
                                                     onClick={() => {
-                                                        const newRate = prompt('Enter new commission % (e.g., 5 for 5%)', (click.commissionRate * 100).toFixed(1));
-                                                        if (newRate !== null) handleRateUpdate(click._id, newRate);
+                                                        setSelectedClick(click);
+                                                        setIsRateModalOpen(true);
                                                     }}
                                                     className="border border-gray-100 text-primary text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all mr-2"
                                                 >
@@ -475,8 +473,8 @@ function Commissions() {
                                             <div className="flex gap-2 justify-end">
                                                 <button
                                                     onClick={() => {
-                                                        const newRate = prompt('Enter new commission % (e.g., 5 for 5%)', (click.commissionRate * 100).toFixed(1));
-                                                        if (newRate !== null) handleRateUpdate(click._id, newRate);
+                                                        setSelectedClick(click);
+                                                        setIsRateModalOpen(true);
                                                     }}
                                                     className="border border-gray-100 text-primary text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:bg-gray-50 active:scale-95 transition-all"
                                                 >
@@ -748,6 +746,22 @@ function Commissions() {
                     </div>
                 )
             }
+
+            <CommissionModal
+                isOpen={isRateModalOpen}
+                onClose={() => {
+                    setIsRateModalOpen(false);
+                    setSelectedClick(null);
+                }}
+                onSave={(newRate) => {
+                    handleRateUpdate(selectedClick._id, newRate);
+                    setIsRateModalOpen(false);
+                    setSelectedClick(null);
+                }}
+                currentRate={selectedClick?.commissionRate || 0}
+                title="Edit Click Earnings"
+                subtitle={selectedClick?.productName}
+            />
 
             <div className="mt-12">
                 <Pagination

@@ -31,12 +31,14 @@ function ProductView() {
 
                 // 1. Fetch Agent Details if referral code exists
                 let agentId = null;
+                let currentAgent = null;
                 if (referralCode) {
                     try {
                         const agentRes = await apiCall(`/api/referral/validate/${referralCode}`)
                         if (agentRes.ok && agentRes.data?.data) {
-                            setAgent(agentRes.data.data)
-                            agentId = agentRes.data.data._id
+                            currentAgent = agentRes.data.data;
+                            setAgent(currentAgent)
+                            agentId = currentAgent._id
                         }
                     } catch (agentErr) {
                         console.error('Agent validation failed:', agentErr)
@@ -51,6 +53,12 @@ function ProductView() {
                     setProduct(item)
 
                     // 3. Track the click with the referral code and agent ID
+                    // Priority for attribution:
+                    // 1. Validated agent from referral code
+                    // 2. Explicit agentId from URL
+                    // 3. Logged in user if they are an agent/admin
+                    const finalAgentId = agentId || urlAgentId;
+
                     try {
                         await apiCall('/api/analytics/track-click', {
                             method: 'POST',
@@ -62,7 +70,7 @@ function ProductView() {
                                 imageUrl: item.Images?.Primary?.Large?.URL || item.Images?.Primary?.Medium?.URL,
                                 productUrl: item.DetailPageURL,
                                 referralCode: referralCode || '',
-                                agentId: agentId || urlAgentId // Use validated ID or direct URL ID
+                                agentId: finalAgentId
                             })
                         })
                     } catch (trackErr) {
@@ -78,12 +86,29 @@ function ProductView() {
             }
         }
         fetchAndTrack()
-    }, [asin, referralCode])
+    }, [asin, referralCode, urlAgentId])
 
     const handleContinue = () => {
         if (product?.DetailPageURL) {
             window.location.href = product.DetailPageURL
         }
+    }
+
+    const handleShare = () => {
+        const agentCode = user?.referralCode || agent?.referralCode || referralCode || ''
+        const agentId = user?._id || user?.id || ''
+        
+        let shareUrl = `${window.location.origin}/product/${asin}`
+        const params = []
+        if (agentCode) params.push(`ref=${agentCode}`)
+        if (agentId) params.push(`agentId=${agentId}`)
+        
+        if (params.length > 0) {
+            shareUrl += `?${params.join('&')}`
+        }
+
+        navigator.clipboard.writeText(shareUrl)
+        alert('Share link copied to clipboard!')
     }
 
     const openEditModal = async () => {
@@ -212,6 +237,16 @@ function ProductView() {
                         View on Amazon
                         <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </button>
+
+                    {(isAuthenticated || referralCode) && (
+                        <button
+                            onClick={handleShare}
+                            className="w-full mt-4 py-4 border border-gray-100 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span>Share & Earn</span>
+                            <span className="text-xs">🔗</span>
+                        </button>
+                    )}
 
                     <p className="mt-8 text-[9px] text-gray-300 font-bold uppercase tracking-widest">
                         Amazon Verified Seller

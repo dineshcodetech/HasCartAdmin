@@ -4,12 +4,15 @@ import { AMAZON_SEARCH_INDEX } from '../constants'
 import { useAgents } from '../hooks'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import Pagination from '../components/ui/Pagination'
+import CommissionModal from '../components/CommissionModal'
 
 function Analytics() {
     const { agents } = useAgents()
     const [clicks, setClicks] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [selectedClick, setSelectedClick] = useState(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
     const [pagination, setPagination] = useState({
         page: 1,
         limit: 20,
@@ -96,6 +99,27 @@ function Analytics() {
             }
         } catch (err) {
             console.error(err)
+        }
+    }
+
+    const handleRateUpdate = async (clickId, newRate) => {
+        try {
+            const rateValue = parseFloat(newRate);
+            if (isNaN(rateValue)) return alert('Invalid rate');
+
+            const res = await apiCall(`/api/admin/analytics/clicks/${clickId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ commissionRate: rateValue })
+            })
+
+            if (res.ok) {
+                fetchClicks();
+            } else {
+                alert(res.data?.message || 'Failed to update rate')
+            }
+        } catch (err) {
+            console.error(err)
+            alert('Failed to update rate')
         }
     }
 
@@ -215,6 +239,9 @@ function Analytics() {
                                     <thead>
                                         <tr className="bg-gray-50/50">
                                             <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product / ASIN</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Price</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Rate</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Commission</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Attributed Agent</th>
@@ -230,6 +257,15 @@ function Analytics() {
                                                         {click.productName}
                                                     </p>
                                                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">ASIN: {click.asin}</p>
+                                                </td>
+                                                <td className="px-6 py-5 text-center text-xs font-black text-gray-700">
+                                                    {formatCurrency(click.price || 0)}
+                                                </td>
+                                                <td className="px-6 py-5 text-center text-xs font-black text-gray-400">
+                                                    {click.commissionRate ? `${(click.commissionRate * 100).toFixed(2)}%` : '—'}
+                                                </td>
+                                                <td className="px-6 py-5 text-center text-xs font-black text-green-600">
+                                                    {formatCurrency(click.commissionAmount || 0)}
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-tight bg-gray-50 px-2 py-1 rounded">
@@ -261,7 +297,17 @@ function Analytics() {
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     {click.commissionStatus === 'pending' ? (
-                                                        <div className="flex gap-1">
+                                                        <div className="flex gap-1 items-center">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedClick(click);
+                                                                    setIsModalOpen(true);
+                                                                }}
+                                                                className="px-2 py-1 border border-gray-100 text-primary text-[8px] font-black uppercase rounded hover:bg-gray-50 transition-colors"
+                                                                title="Edit Rate"
+                                                            >
+                                                                Edit
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleTransactionAction(click.transactionId, 'completed')}
                                                                 className="px-2 py-1 bg-primary text-white text-[8px] font-black uppercase rounded hover:bg-black transition-colors"
@@ -276,12 +322,26 @@ function Analytics() {
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' :
-                                                            click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
-                                                                'bg-gray-50 text-gray-400'
-                                                            }`}>
-                                                            {click.commissionStatus === 'none' ? 'Ineligible' : click.commissionStatus === 'completed' ? 'Accepted' : 'Rejected'}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${click.commissionStatus === 'completed' ? 'bg-green-50 text-green-600' :
+                                                                click.commissionStatus === 'failed' ? 'bg-red-50 text-red-600' :
+                                                                    'bg-gray-50 text-gray-400'
+                                                                }`}>
+                                                                {click.commissionStatus === 'none' ? 'Ineligible' : click.commissionStatus === 'completed' ? 'Accepted' : 'Rejected'}
+                                                            </span>
+                                                            {click.commissionStatus !== 'none' && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedClick(click);
+                                                                        setIsModalOpen(true);
+                                                                    }}
+                                                                    className="text-gray-300 hover:text-primary transition-colors"
+                                                                    title="Change Rate"
+                                                                >
+                                                                    <span className="text-[10px]">✎</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
@@ -311,6 +371,22 @@ function Analytics() {
                     </div>
                 )}
             </div>
+
+            <CommissionModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedClick(null);
+                }}
+                onSave={(newRate) => {
+                    handleRateUpdate(selectedClick._id, newRate);
+                    setIsModalOpen(false);
+                    setSelectedClick(null);
+                }}
+                currentRate={selectedClick?.commissionRate || 0}
+                title="Edit Click Earnings"
+                subtitle={selectedClick?.productName}
+            />
         </div>
     )
 }

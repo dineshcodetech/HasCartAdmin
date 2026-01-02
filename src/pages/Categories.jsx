@@ -7,6 +7,29 @@ import { useCategories } from '../hooks/useCategories'
 import { AMAZON_SEARCH_INDEX, API_ENDPOINTS } from '../constants'
 import { apiCall } from '../services/api'
 
+const ICON_OPTIONS = [
+    { value: 'grid-view', label: 'Default', icon: 'grid_view' },
+    { value: 'smartphone', label: 'Mobiles', icon: 'smartphone' },
+    { value: 'checkroom', label: 'Fashion', icon: 'checkroom' },
+    { value: 'directions-car', label: 'Auto', icon: 'directions_car' },
+    { value: 'home', label: 'Home', icon: 'home' },
+    { value: 'tv', label: 'TV/Appliances', icon: 'tv' },
+    { value: 'spa', label: 'Beauty', icon: 'spa' },
+    { value: 'menu-book', label: 'Books', icon: 'menu_book' },
+    { value: 'toys', label: 'Toys', icon: 'toys' },
+    { value: 'computer', label: 'Computers', icon: 'computer' },
+    { value: 'sports-soccer', label: 'Sports', icon: 'sports_soccer' },
+    { value: 'child-care', label: 'Baby', icon: 'child_care' },
+    { value: 'restaurant', label: 'Grocery', icon: 'restaurant' },
+    { value: 'pets', label: 'Pets', icon: 'pets' },
+    { value: 'watch', label: 'Watches', icon: 'watch' },
+    { value: 'electric-bolt', label: 'Electronics', icon: 'electric_bolt' },
+    { value: 'kitchen', icon: 'kitchen', label: 'Appliances' },
+    { value: 'fitness-center', icon: 'fitness_center', label: 'Gym' },
+    { value: 'local-mall', icon: 'local_mall', label: 'Shopping' },
+    { value: 'headphones', icon: 'headphones', label: 'Audio' },
+]
+
 function Categories() {
     const {
         categories,
@@ -24,6 +47,7 @@ function Categories() {
         name: '',
         description: '',
         amazonSearchIndex: 'All',
+        icon: 'grid-view',
         searchQueries: [''],
         percentage: '',
         status: 'active',
@@ -55,6 +79,7 @@ function Categories() {
             name: '',
             description: '',
             amazonSearchIndex: 'All',
+            icon: 'grid-view',
             searchQueries: [''],
             percentage: '',
             status: 'active',
@@ -96,6 +121,7 @@ function Categories() {
             name: formData.name.trim(),
             description: formData.description.trim(),
             amazonSearchIndex: formData.amazonSearchIndex,
+            icon: formData.icon,
             searchQueries: formData.searchQueries.filter(q => q.trim() !== ''),
             percentage: parseFloat(formData.percentage),
             status: formData.status,
@@ -128,6 +154,7 @@ function Categories() {
             searchQueries: (category.searchQueries && category.searchQueries.length > 0)
                 ? category.searchQueries
                 : [category.searchQuery || ''],
+            icon: category.icon || 'grid-view',
             percentage: category.percentage.toString(),
             status: category.status,
             selectedProducts: category.selectedProducts || [],
@@ -354,6 +381,30 @@ function Categories() {
                                 </select>
                             </div>
                             <div className="md:col-span-2">
+                                <label className="text-xs uppercase tracking-wider text-gray-400 mb-3 block">
+                                    Display Icon
+                                </label>
+                                <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 gap-2 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                    {ICON_OPTIONS.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, icon: option.value }))}
+                                            className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all border ${formData.icon === option.value
+                                                    ? 'bg-primary text-white border-primary shadow-sm'
+                                                    : 'bg-white text-gray-400 border-gray-100 hover:border-primary/30 hover:text-primary'
+                                                }`}
+                                            title={option.label}
+                                        >
+                                            <span className="material-icons text-xl mb-1">{option.icon}</span>
+                                            <span className={`text-[8px] font-bold uppercase truncate w-full text-center ${formData.icon === option.value ? 'text-white' : 'text-gray-400'}`}>
+                                                {option.label}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
                                 <label className="text-xs uppercase tracking-wider text-gray-400 mb-4 block">
                                     Search Queries (India Marketplace)
                                 </label>
@@ -491,6 +542,7 @@ function Categories() {
                                     <thead>
                                         <tr className="bg-gray-50/50">
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Name</th>
+                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Icon</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Description</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Percentage</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Curation</th>
@@ -506,6 +558,12 @@ function Categories() {
                                             >
                                                 <td className="px-4 py-4 text-primary font-bold">
                                                     {category.name}
+                                                </td>
+                                                <td className="px-4 py-4 text-primary font-bold">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="material-icons text-lg text-primary/70">{category.icon?.replace(/-/g, '_') || 'grid_view'}</span>
+                                                        <span className="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase">{category.icon || 'grid-view'}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-gray-600 text-sm max-w-xs truncate" title={category.description}>
                                                     {category.description || '-'}

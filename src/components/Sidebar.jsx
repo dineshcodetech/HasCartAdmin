@@ -56,10 +56,13 @@ function Sidebar() {
       <div className="p-4 border-t border-white/10">
         <button
           onClick={handleLogout}
-          className="w-full px-4 py-3 text-xs font-bold tracking-[0.15em] uppercase border border-white/20 text-white hover:bg-white hover:text-primary transition-all rounded-lg"
+          className="w-full px-4 py-3 text-xs font-bold tracking-[0.15em] uppercase border border-white/20 text-white hover:bg-white hover:text-primary transition-all rounded-lg mb-4"
         >
           Logout
         </button>
+        <div className="text-center">
+          <span className="text-[10px] text-white/30 font-bold tracking-[0.2em] uppercase">v1.0.0</span>
+        </div>
       </div>
     </div>
   )
