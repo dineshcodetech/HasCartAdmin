@@ -24,7 +24,8 @@ function Analytics() {
         agentId: '',
         status: '',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        search: ''
     })
 
     const fetchClicks = useCallback(async () => {
@@ -42,6 +43,7 @@ function Analytics() {
             if (filters.status) queryParams.append('status', filters.status)
             if (filters.startDate) queryParams.append('startDate', filters.startDate)
             if (filters.endDate) queryParams.append('endDate', filters.endDate)
+            if (filters.search) queryParams.append('search', filters.search)
 
             const response = await apiCall(`/api/admin/analytics/clicks?${queryParams}`)
 
@@ -77,7 +79,8 @@ function Analytics() {
             agentId: '',
             status: '',
             startDate: '',
-            endDate: ''
+            endDate: '',
+            search: ''
         })
         setPagination(prev => ({ ...prev, page: 1 }))
     }
@@ -144,6 +147,27 @@ function Analytics() {
 
             {/* Filters */}
             <div className="mb-8 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm flex gap-8 items-end flex-wrap">
+                <div className="flex-1 min-w-[300px]">
+                    <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Search</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search Product or ASIN..."
+                            value={filters.search}
+                            onChange={(e) => updateFilter('search', e.target.value)}
+                            className="w-full text-xs font-bold border-b border-gray-100 pb-1 outline-none focus:border-primary bg-transparent"
+                        />
+                        {filters.search && (
+                            <button
+                                onClick={() => updateFilter('search', '')}
+                                className="absolute right-0 bottom-1 text-gray-300 hover:text-gray-500"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="flex-1 min-w-[200px]">
                     <label className="block text-[10px] uppercase font-black text-gray-400 mb-2">Category</label>
                     <select
@@ -387,7 +411,7 @@ function Analytics() {
                 title="Edit Click Earnings"
                 subtitle={selectedClick?.productName}
             />
-        </div>
+        </div >
     )
 }
 

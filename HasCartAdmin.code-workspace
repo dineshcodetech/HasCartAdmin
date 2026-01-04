@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../HasCartBeFlask"
+		},
+		{
+			"path": "../HasCartReactiveNative"
+		}
+	]
+}

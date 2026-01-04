@@ -238,15 +238,7 @@ function ProductView() {
                         <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </button>
 
-                    {(isAuthenticated || referralCode) && (
-                        <button
-                            onClick={handleShare}
-                            className="w-full mt-4 py-4 border border-gray-100 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            <span>Share & Earn</span>
-                            <span className="text-xs">🔗</span>
-                        </button>
-                    )}
+                   
 
                     <p className="mt-8 text-[9px] text-gray-300 font-bold uppercase tracking-widest">
                         Amazon Verified Seller

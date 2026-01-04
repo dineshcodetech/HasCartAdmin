@@ -62,3 +62,11 @@ The app expects the backend to have the following endpoint:
 
 - Add admin functionality after user creation
 - Implement authentication and login
+
+
+git pull
+npm install        # only if deps changed
+npm run build
+sudo rm -rf /var/www/hascart-admin/*
+sudo cp -r dist/* /var/www/hascart-admin/
+sudo systemctl reload nginx
